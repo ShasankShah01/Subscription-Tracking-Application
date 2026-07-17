@@ -1,0 +1,59 @@
+🚀 How to Get Our Project on Your Laptop (GitHub Desktop)
+
+Hey team! I have uploaded our initial project files and documents to our GitHub repository.
+
+To get these files onto your own laptops and start collaborating, please follow these steps carefully:
+
+
+Step 1: Accept the Repository Invitation
+
+Since I added you to the repository, you should have received an email from GitHub.
+
+Open your email and look for an invitation from GitHub.
+
+Click View Invitation and then click Accept Invitation.
+(Alternatively, you can just log into GitHub on your browser and check your notifications).
+
+
+Step 2: Download & Sign In to GitHub Desktop
+
+If you don't have GitHub Desktop installed yet:
+
+Download it from here: desktop.github.com
+
+Install the application.
+
+Open GitHub Desktop, go to File > Options (or GitHub Desktop > Settings on Mac), click Accounts, and sign in with your GitHub account.
+
+
+Step 3: "Clone" (Download) the Repository
+
+"Cloning" just means downloading a linked copy of our project to your computer.
+
+Open GitHub Desktop.
+
+Click on File in the top menu, then select Clone repository... (or press Ctrl + Shift + O).
+
+In the window that pops up, click on the GitHub.com tab.
+
+You should see our repository listed there. Click on it to select it.
+
+At the bottom, check the Local Path. This is where the folder will be saved on your laptop (e.g., Documents\GitHub\SubscriptionTracker). Change it if you want, but the default is usually fine.
+
+Click the blue Clone button.
+
+
+Step 4: Access the Files!
+
+That's it!
+
+In GitHub Desktop, you can click Show in Explorer (Windows) or Show in Finder (Mac) on the left sidebar to instantly open the folder containing our project files.
+
+You will see the documents and images I already uploaded.
+
+
+⚠️ The Golden Rule Before You Start Working ⚠️
+
+Every time you sit down to work on the project, always open GitHub Desktop first and click the "Fetch origin" button at the top right.
+
+If someone else made changes, that button will change to "Pull origin". Click it to download their updates so you are always working on the latest version of the code!
