@@ -41,7 +41,7 @@ Please follow this setup guide precisely to get your local environment running.
  3. Ensure your local MongoDB instance is running, or create a .env file with your MONGO_URI.
  
  4. Start the backend server:
-    > npm run dev
+    > node server.js
  
  -> Expected output: "Server running on port 5000" and "MongoDB Connected"
 
