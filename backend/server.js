@@ -1,42 +1,57 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
+
+const connectDB = require('./config/db');
+const seedAdmin = require('./scripts/seedAdmin');
+
+const authRoutes = require('./routes/authRoutes');
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// Connect to MongoDB
+connectDB();
+
+// CORS configuration for HttpOnly cookie credential transport
+app.use(cors({
+  origin: process.env.CLIENT_URL || true,
+  credentials: true,
+}));
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// MongoDB Connection
-const mongoURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/subscription_tracker';
+// Mount API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/admin', adminRoutes);
 
-mongoose.connect(mongoURI)
-  .then(() => console.log('Successfully connected to MongoDB Database.'))
-  .catch((err) => {
-    console.error('Database connection error:', err);
-    process.exit(1);
-  });
-
-// Simple Health Check/Welcome Route
-app.get('/', (req, res) => {
-  res.status(200).json({
-    message: 'Welcome to the Subscription Tracking Application API',
-    status: 'Healthy'
-  });
-});
-
-// A boilerplate route for subscription tracking APIs
+// Health Check Endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
-    status: 'success',
-    message: 'API server is up and running'
+    status: 'healthy',
+    message: 'STArt API Engine is running smoothly',
+    timestamp: new Date().toISOString(),
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port: ${PORT}`);
+// Root Welcome Route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    app: 'STArt - Subscription Tracking Application API',
+    version: '1.0.0',
+    status: 'Active',
+  });
+});
+
+// Start Server & Run Admin Seeding
+app.listen(PORT, async () => {
+  console.log(`STArt Backend Server listening on port: ${PORT}`);
+  // Execute Master Admin Seeding automatically on server boot
+  await seedAdmin();
 });

@@ -1,0 +1,21 @@
+{
+  "name": "STArt - Subscription Tracking Application",
+  "short_name": "STArt",
+  "description": "100% Free MERN Subscription Tracking Utility Tool with Multi-Currency & Alert Engine",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/vite.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

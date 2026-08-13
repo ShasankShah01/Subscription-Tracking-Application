@@ -10,9 +10,8 @@ const features = [
     badge: 'Proactive Alerting',
     title: 'Smart Renewal Reminders',
     description: 'Never get hit with unexpected auto-renewals again. Receive automated heads-up notifications before money leaves your account.',
-    accent: 'from-indigo-500 to-violet-500',
-    border: 'hover:border-indigo-500/50',
-    iconBg: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+    accent: 'from-cyan-500 to-blue-600',
+    iconBg: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
   },
   {
     icon: (
@@ -24,7 +23,6 @@ const features = [
     title: 'Categorized Expense Analytics',
     description: 'Breakdown your monthly burn rate into clear categories—Streaming, SaaS, Cloud Infrastructure, and Fitness memberships.',
     accent: 'from-emerald-500 to-teal-500',
-    border: 'hover:border-emerald-500/50',
     iconBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   },
   {
@@ -35,9 +33,8 @@ const features = [
     ),
     badge: 'Waste Detection',
     title: 'Unused Subscription Guard',
-    description: 'STArt algorithms flag under-utilized subscriptions and free trial deadlines, giving you actionable recommendations to save money.',
+    description: 'Flag under-utilized subscriptions and free trial deadlines, giving you actionable recommendations to save money.',
     accent: 'from-rose-500 to-pink-500',
-    border: 'hover:border-rose-500/50',
     iconBg: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
   },
   {
@@ -50,7 +47,6 @@ const features = [
     title: 'Multi-Currency Conversion',
     description: 'Track global developer tools or overseas subscriptions with real-time automatic currency normalization to your base currency.',
     accent: 'from-amber-500 to-orange-500',
-    border: 'hover:border-amber-500/50',
     iconBg: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   },
   {
@@ -63,7 +59,6 @@ const features = [
     title: 'One-Click Cancellation Playbook',
     description: 'Get direct cancellation links and step-by-step guidance for tricky recurring subscription services that hide their unsubscribe buttons.',
     accent: 'from-cyan-500 to-blue-500',
-    border: 'hover:border-cyan-500/50',
     iconBg: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
   },
   {
@@ -75,26 +70,25 @@ const features = [
     badge: 'High-Performance',
     title: 'MERN Stack Enterprise Core',
     description: 'Engineered with MongoDB, Express, React 19, and Node.js for lightning-fast sub-millisecond query responses and rock-solid security.',
-    accent: 'from-violet-500 to-purple-500',
-    border: 'hover:border-violet-500/50',
-    iconBg: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+    accent: 'from-cyan-400 to-emerald-400',
+    iconBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   },
 ];
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="py-24 border-b border-white/5 relative overflow-hidden">
+    <section id="features" className="py-24 border-b border-slate-800/60 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Section Title */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-xs font-semibold text-violet-400 mb-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs font-semibold text-cyan-400 mb-4">
             Engineered for Maximum Control
           </div>
           <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight mb-4">
             Built to Eliminate Subscription Leakage
           </h2>
-          <p className="text-zinc-400 text-lg">
+          <p className="text-slate-400 text-lg">
             STArt combines intelligent tracking, proactive alerts, and financial visibility into a single glassmorphic workspace.
           </p>
         </div>
@@ -104,33 +98,30 @@ export default function FeaturesSection() {
           {features.map((item, idx) => (
             <div
               key={idx}
-              className={`group relative rounded-3xl bg-zinc-900/40 border border-white/10 p-8 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 shadow-xl hover:shadow-2xl ${item.border}`}
+              className="group relative rounded-3xl bg-slate-900/60 border border-slate-800 p-8 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan-500/40 shadow-xl"
             >
-              {/* Subtle gradient border sheen on hover */}
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-
               {/* Icon badge */}
               <div className="flex items-center justify-between mb-6">
                 <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 ${item.iconBg}`}>
                   {item.icon}
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-zinc-950/80 border border-white/10 text-zinc-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-950 border border-slate-800 text-slate-400">
                   {item.badge}
                 </span>
               </div>
 
-              {/* Card Title */}
-              <h3 className="text-xl font-extrabold text-white mb-3 tracking-tight group-hover:text-indigo-300 transition-colors">
+              {/* Title */}
+              <h3 className="text-xl font-extrabold text-white mb-3 tracking-tight group-hover:text-cyan-300 transition-colors">
                 {item.title}
               </h3>
 
               {/* Description */}
-              <p className="text-zinc-400 text-sm leading-relaxed mb-6 font-normal">
+              <p className="text-slate-400 text-sm leading-relaxed mb-6 font-normal">
                 {item.description}
               </p>
 
-              {/* Decorative Accent Line */}
-              <div className="w-full bg-zinc-800 rounded-full h-1 overflow-hidden">
+              {/* Accent Line */}
+              <div className="w-full bg-slate-800 rounded-full h-1 overflow-hidden">
                 <div className={`h-full w-0 group-hover:w-full transition-all duration-500 bg-gradient-to-r ${item.accent}`} />
               </div>
             </div>

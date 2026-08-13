@@ -1,8 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
-export default function Navbar({ onDashboardClick }) {
+export default function Navbar({
+  currentView,
+  onGoLanding,
+  onGoDashboard,
+  user,
+  onLogout,
+  onOpenAuth
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const { isDarkMode, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,95 +37,131 @@ export default function Navbar({ onDashboardClick }) {
     <header
       className={`sticky top-0 z-40 transition-all duration-300 ${
         scrolled
-          ? 'bg-zinc-950/80 backdrop-blur-xl border-b border-white/10 shadow-2xl shadow-black/50'
-          : 'bg-transparent border-b border-white/5'
+          ? 'bg-slate-950/90 backdrop-blur-xl border-b border-slate-800 shadow-2xl'
+          : 'bg-slate-950/60 backdrop-blur-md border-b border-slate-800/60'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand Logo */}
-        <a href="#" className="flex items-center gap-3 group">
+        <button onClick={onGoLanding} className="flex items-center gap-3 group text-left">
           <div className="relative flex items-center justify-center">
-            <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-indigo-500 via-violet-500 to-emerald-400 opacity-75 blur transition duration-300 group-hover:opacity-100" />
-            <div className="relative w-10 h-10 rounded-xl bg-zinc-950 flex items-center justify-center font-black text-xl text-white border border-white/10 shadow-inner">
-              <span className="bg-gradient-to-tr from-indigo-400 via-violet-300 to-emerald-400 bg-clip-text text-transparent">
+            <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-400 opacity-75 blur transition duration-300 group-hover:opacity-100" />
+            <div className="relative w-10 h-10 rounded-xl bg-slate-950 flex items-center justify-center font-black text-xl text-white border border-slate-800 shadow-inner">
+              <span className="bg-gradient-to-tr from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
                 S
               </span>
             </div>
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-                ST
-              </span>
-              <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-indigo-400 via-violet-400 to-emerald-400 bg-clip-text text-transparent">
-                Art
+              <span className="font-extrabold text-2xl tracking-tight text-white">
+                ST<span className="text-cyan-400">Art</span>
               </span>
             </div>
-            <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-400 -mt-1">
-              Subscription Hub
+            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 -mt-1">
+              100% Free Mini-Project
             </span>
           </div>
-        </a>
+        </button>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1 p-1.5 rounded-full bg-zinc-900/60 border border-white/10 backdrop-blur-md">
+        <nav className="hidden md:flex items-center gap-1 p-1.5 rounded-full bg-slate-900/80 border border-slate-800 backdrop-blur-md">
+          <button
+            onClick={onGoLanding}
+            className={`px-4 py-2 text-xs font-semibold rounded-full transition-all ${
+              currentView === 'landing'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Home
+          </button>
           <a
             href="#features"
-            className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/5 rounded-full transition-all"
+            className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-full transition-all"
           >
             Features
           </a>
           <a
             href="#dashboard-preview"
-            className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/5 rounded-full transition-all"
+            className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-full transition-all"
           >
-            Dashboard
+            Preview
           </a>
           <a
             href="#calculator"
-            className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/5 rounded-full transition-all"
+            className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-full transition-all"
           >
             Savings Calculator
           </a>
           <a
-            href="#pricing"
-            className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/5 rounded-full transition-all"
+            href="#feedback"
+            className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-full transition-all"
           >
-            Pricing
-          </a>
-          <a
-            href="#testimonials"
-            className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/5 rounded-full transition-all"
-          >
-            Reviews
+            Feedback
           </a>
         </nav>
 
-        {/* CTA Actions */}
-        <div className="hidden md:flex items-center gap-4">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-semibold text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            MERN Live Engine
+        {/* Action Buttons & Auth */}
+        <div className="hidden md:flex items-center gap-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-semibold text-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            100% Free Tool
           </span>
 
           <button
-            onClick={onDashboardClick}
-            className="relative group overflow-hidden px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide text-white bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 shadow-lg shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/50 hover:scale-105 active:scale-95 transition-all duration-300 border border-indigo-400/30"
+            onClick={onGoDashboard}
+            className="px-5 py-2.5 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 to-emerald-400 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-2"
           >
-            <span className="relative z-10 flex items-center gap-2">
-              View Dashboard
-              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            <span>View Dashboard</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
           </button>
+
+          {user ? (
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-cyan-500/20 border border-slate-200 dark:border-cyan-500/40 text-cyan-600 dark:text-cyan-300 flex items-center justify-center font-bold text-sm shadow-inner hover:bg-slate-200 dark:hover:bg-cyan-500/30 transition-colors"
+              >
+                {(user?.name || 'U').charAt(0).toUpperCase()}
+              </button>
+              
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute right-0 top-12 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                  <button 
+                    onClick={() => { toggleTheme(); setIsDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex justify-between items-center"
+                  >
+                    <span>Toggle Theme</span>
+                    <span className="text-xs text-slate-500">{isDarkMode ? 'Dark' : 'Light'}</span>
+                  </button>
+                  <div className="h-px bg-slate-200 dark:bg-slate-800 my-1" />
+                  <button 
+                    onClick={() => { onLogout(); setIsDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              className="px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-all"
+            >
+              Sign In
+            </button>
+          )}
         </div>
 
         {/* Mobile Hamburger Button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 rounded-xl bg-zinc-900 border border-white/10 text-zinc-300 hover:text-white"
+          className="md:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
           aria-label="Toggle menu"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,8 +176,17 @@ export default function Navbar({ onDashboardClick }) {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-zinc-950/95 backdrop-blur-2xl border-b border-white/10 px-6 py-6 space-y-4">
-          <div className="flex flex-col space-y-3 font-medium text-sm text-zinc-300">
+        <div className="md:hidden bg-slate-950/95 backdrop-blur-2xl border-b border-slate-800 px-6 py-6 space-y-4">
+          <div className="flex flex-col space-y-3 font-medium text-sm text-slate-300">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onGoLanding();
+              }}
+              className="text-left hover:text-white transition-colors"
+            >
+              Home
+            </button>
             <a
               href="#features"
               onClick={() => setMobileMenuOpen(false)}
@@ -143,30 +209,46 @@ export default function Navbar({ onDashboardClick }) {
               Savings Calculator
             </a>
             <a
-              href="#pricing"
+              href="#feedback"
               onClick={() => setMobileMenuOpen(false)}
               className="hover:text-white transition-colors"
             >
-              Pricing
-            </a>
-            <a
-              href="#testimonials"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-white transition-colors"
-            >
-              Reviews
+              Community Feedback
             </a>
           </div>
-          <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
+
+          <div className="pt-4 border-t border-slate-800 flex flex-col gap-3">
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
-                onDashboardClick();
+                onGoDashboard();
               }}
-              className="w-full py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all text-center"
+              className="w-full py-3 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 to-emerald-400 text-center"
             >
               View Dashboard
             </button>
+
+            {user ? (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onLogout();
+                }}
+                className="w-full py-2.5 rounded-xl font-semibold text-xs text-rose-400 bg-slate-900 border border-slate-800"
+              >
+                Sign Out ({user.name})
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenAuth();
+                }}
+                className="w-full py-2.5 rounded-xl font-semibold text-xs text-slate-300 bg-slate-900 border border-slate-800"
+              >
+                Sign In / Register
+              </button>
+            )}
           </div>
         </div>
       )}
