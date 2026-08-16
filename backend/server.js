@@ -13,9 +13,6 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
-connectDB();
-
 // CORS configuration for HttpOnly cookie credential transport
 app.use(cors({
   origin: process.env.CLIENT_URL || true,
@@ -49,9 +46,19 @@ app.get('/', (req, res) => {
   });
 });
 
-// Start Server & Run Admin Seeding
-app.listen(PORT, async () => {
-  console.log(`STArt Backend Server listening on port: ${PORT}`);
-  // Execute Master Admin Seeding automatically on server boot
-  await seedAdmin();
-});
+// --- Boot Sequence: Connect DB → Seed → Listen ---
+(async () => {
+  // connectDB returns { usingFallback: boolean } so the seeder knows which
+  // admin accounts to create (fallback state needs the dev admin too).
+  const { usingFallback } = await connectDB();
+
+  // Seed admin accounts after the DB connection is confirmed ready
+  await seedAdmin({ usingFallback });
+
+  app.listen(PORT, () => {
+    console.log('');
+    console.log(`🚀 STArt Backend Server listening on port: ${PORT}`);
+    console.log(`   DB mode: ${usingFallback ? '⚠️  In-Memory (volatile)' : '✅ Primary MongoDB (persistent)'}`);
+    console.log('');
+  });
+})();

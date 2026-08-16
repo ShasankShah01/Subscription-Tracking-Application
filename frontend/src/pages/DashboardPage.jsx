@@ -182,9 +182,9 @@ export default function DashboardPage({
 
       {/* Metrics Cards in Selected Currency */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 joyride-analytics">
-        <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
-          <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Monthly Spend</div>
-          <div className="text-3xl font-black text-white mt-2 flex items-baseline gap-2">
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Total Monthly Spend</div>
+          <div className="text-3xl font-black text-slate-900 dark:text-white mt-2 flex items-baseline gap-2">
             {formatPrice(displayTotalMonthly, displayCurrency)}
             <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
               {displayCurrency}
@@ -193,24 +193,24 @@ export default function DashboardPage({
           <div className="mt-3 text-xs text-slate-500 font-medium">Real-time converted spend</div>
         </div>
 
-        <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
-          <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Services</div>
-          <div className="text-3xl font-black text-emerald-400 mt-2 flex items-baseline gap-2">
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Active Services</div>
+          <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-2 flex items-baseline gap-2">
             {activeSubs.length} Subscriptions
           </div>
           <div className="mt-3 text-xs text-slate-500 font-medium">{pausedSubs.length} paused or flagged</div>
         </div>
 
-        <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
-          <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Monthly Savings Realized</div>
-          <div className="text-3xl font-black text-cyan-400 mt-2 flex items-baseline gap-2">
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Monthly Savings Realized</div>
+          <div className="text-3xl font-black text-cyan-600 dark:text-cyan-400 mt-2 flex items-baseline gap-2">
             {formatPrice(displayPausedSavings, displayCurrency)} / mo
           </div>
           <div className="mt-3 text-xs text-slate-500 font-medium">Saved via paused/canceled subs</div>
         </div>
 
-        <div className="p-6 rounded-3xl bg-cyan-500/10 border border-cyan-500/30 backdrop-blur-xl flex flex-col justify-center items-center text-center cursor-pointer hover:bg-cyan-500/20 transition-all" onClick={handleForceSync}>
-          <svg className={`w-8 h-8 text-cyan-400 mb-2 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="p-6 rounded-3xl bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/30 backdrop-blur-xl flex flex-col justify-center items-center text-center cursor-pointer hover:bg-cyan-100 dark:hover:bg-cyan-500/20 transition-all" onClick={handleForceSync}>
+          <svg className={`w-8 h-8 text-cyan-600 dark:text-cyan-400 mb-2 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           <div className="text-sm font-bold text-cyan-300">{syncing ? 'Syncing...' : 'Force Sync Data'}</div>
@@ -218,7 +218,7 @@ export default function DashboardPage({
       </div>
 
       {/* Toolbar: Search & Category Filter Pills */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/40 border border-slate-800">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 max-w-md">
           <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -228,7 +228,7 @@ export default function DashboardPage({
             placeholder="Search subscriptions by name or category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500 transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500 transition-colors"
           />
         </div>
 
@@ -239,8 +239,8 @@ export default function DashboardPage({
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                 selectedCategory === cat
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                  : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+                  ? 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/40 shadow-sm'
+                  : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               {cat}
@@ -251,7 +251,7 @@ export default function DashboardPage({
         <select
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
-          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-300 focus:outline-none focus:border-cyan-500"
+          className="px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-cyan-500"
         >
           <option value="All">All Statuses</option>
           <option value="Active">Active Only</option>
@@ -270,7 +270,7 @@ export default function DashboardPage({
         </button>
         <button
           onClick={handleExportCSV}
-          className="px-4 py-2 rounded-xl font-bold text-xs text-white bg-slate-800 border border-slate-700 hover:bg-slate-700 shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0"
+          className="px-4 py-2 rounded-xl font-bold text-xs text-slate-700 dark:text-white bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -280,14 +280,14 @@ export default function DashboardPage({
       </div>
 
       {/* Subscriptions Data Table */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/40 backdrop-blur-xl overflow-hidden shadow-2xl">
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 backdrop-blur-xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="text-xs font-bold uppercase tracking-wider text-slate-400 bg-slate-950 border-b border-slate-800">
+          <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+            <thead className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-6 py-4">Subscription Service</th>
                 <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('price')}>
+                <th className="px-6 py-4 cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors select-none" onClick={() => handleSort('price')}>
                   <div className="flex items-center gap-1">
                     Price ({displayCurrency})
                     {sortField === 'price' && (
@@ -297,7 +297,7 @@ export default function DashboardPage({
                     )}
                   </div>
                 </th>
-                <th className="px-6 py-4 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('renewal')}>
+                <th className="px-6 py-4 cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors select-none" onClick={() => handleSort('renewal')}>
                   <div className="flex items-center gap-1">
                     Next Renewal
                     {sortField === 'renewal' && (
@@ -311,7 +311,7 @@ export default function DashboardPage({
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-medium">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-medium">
               {sortedSubs.length > 0 ? (
                 sortedSubs.map((sub) => {
                   const rawVal = parseFloat(sub.price.replace(/[^0-9.]/g, '')) || 0;
@@ -319,24 +319,24 @@ export default function DashboardPage({
                   const convertedVal = convertCurrency(rawVal, subCurr, displayCurrency);
 
                   return (
-                    <tr key={sub.id} className="hover:bg-slate-800/30 transition-colors">
+                    <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-white shadow-inner">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-slate-900 dark:text-white shadow-inner">
                             {sub.name.charAt(0)}
                           </div>
                           <div>
-                            <span className="font-bold text-white block">{sub.name}</span>
+                            <span className="font-bold text-slate-900 dark:text-white block">{sub.name}</span>
                             <span className="text-[11px] text-slate-500">{sub.cycle} billing</span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-400">{sub.category}</td>
+                      <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400">{sub.category}</td>
                       <td className="px-6 py-4">
-                        <span className="font-bold text-white">{formatPrice(convertedVal, displayCurrency)}</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{formatPrice(convertedVal, displayCurrency)}</span>
                         <span className="text-xs text-slate-500"> / {sub.cycle}</span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-300">{sub.renewal}</td>
+                      <td className="px-6 py-4 text-xs text-slate-700 dark:text-slate-300">{sub.renewal}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${sub.color}`}>
                           {sub.status}
@@ -345,7 +345,7 @@ export default function DashboardPage({
                       <td className="px-6 py-4 text-right space-x-2">
                         <button
                           onClick={() => openEditModal(sub)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                         >
                           Edit
                         </button>
@@ -353,15 +353,15 @@ export default function DashboardPage({
                           onClick={() => handleToggleStatus(sub.id)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                             sub.status === 'Paused'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                              ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30 hover:bg-emerald-200 dark:hover:bg-emerald-500/20'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
                           }`}
                         >
                           {sub.status === 'Paused' ? 'Resume' : 'Pause'}
                         </button>
                         <button
                           onClick={() => handleDeleteSub(sub.id, sub.name)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-500/20 transition-all"
                         >
                           Delete
                         </button>

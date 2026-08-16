@@ -2,17 +2,30 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeContext = createContext();
 
-export function ThemeProvider({ children }) {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check local storage first
+// Apply dark class instantly before first paint to prevent flash
+const getInitialTheme = () => {
+  try {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
-    // Fallback to system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
+  } catch {
+    return false;
+  }
+};
+
+// Run immediately — not inside React lifecycle — to block FOUC
+const initialDark = getInitialTheme();
+if (initialDark) {
+  document.documentElement.classList.add('dark');
+} else {
+  document.documentElement.classList.remove('dark');
+}
+
+export function ThemeProvider({ children }) {
+  const [isDarkMode, setIsDarkMode] = useState(initialDark);
 
   useEffect(() => {
-    const root = window.document.documentElement;
+    const root = document.documentElement;
     if (isDarkMode) {
       root.classList.add('dark');
       localStorage.setItem('theme', 'dark');
@@ -22,9 +35,7 @@ export function ThemeProvider({ children }) {
     }
   }, [isDarkMode]);
 
-  const toggleTheme = () => {
-    setIsDarkMode(prev => !prev);
-  };
+  const toggleTheme = () => setIsDarkMode((prev) => !prev);
 
   return (
     <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>

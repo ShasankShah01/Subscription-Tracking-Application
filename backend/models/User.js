@@ -31,6 +31,14 @@ const userSchema = new mongoose.Schema({
     enum: ['User', 'System Analyst', 'Admin'],
     default: 'User',
   },
+  isSuspended: {
+    type: Boolean,
+    default: false,
+  },
+  passwordResetRequested: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
