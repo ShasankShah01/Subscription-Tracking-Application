@@ -4,22 +4,12 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/images/logo-main.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#020617" />
+    <meta name="theme-color" content="#7c3aed" />
     <meta name="description" content="STArt - Subscription Tracking Application. 100% Free MERN Utility Tool." />
-    <link rel="manifest" href="/manifest.json" />
     <title>STArt - Subscription Tracking Application</title>
   </head>
-  <body class="bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950">
+  <body class="bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-royal-purple-200 selection:text-royal-purple-900">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('[PWA] Service Worker registered:', reg.scope))
-            .catch(err => console.log('[PWA] Service Worker registration failed:', err));
-        });
-      }
-    </script>
   </body>
 </html>

@@ -4,10 +4,17 @@ const Subscription = require('../models/Subscription');
 // @route   GET /api/subscriptions
 exports.getSubscriptions = async (req, res) => {
   try {
-    const subscriptions = await Subscription.find({ user: req.user.id }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: subscriptions.length, subscriptions });
+    const userId = req.user?._id || req.user?.id;
+    const subscriptions = await Subscription.find({ user: userId }).sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      count: subscriptions.length,
+      subscriptions,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching subscriptions' });
+    console.error('Error fetching subscriptions:', error);
+    res.status(500).json({ error: error.message, message: 'Error fetching subscriptions' });
   }
 };
 
@@ -15,51 +22,89 @@ exports.getSubscriptions = async (req, res) => {
 // @route   POST /api/subscriptions
 exports.createSubscription = async (req, res) => {
   try {
-    const { serviceName, category, cost, currency, billingCycle, nextRenewalDate, status } = req.body;
+    const userId = req.user?._id || req.user?.id;
+    console.log("Saving subscription for user:", userId, req.body);
 
-    if (!serviceName || !cost || !nextRenewalDate) {
-      return res.status(400).json({ message: 'Service name, cost, and next renewal date are required' });
+    const {
+      serviceName,
+      name,
+      category,
+      cost,
+      price,
+      currency,
+      billingCycle,
+      cycle,
+      nextRenewalDate,
+      renewal,
+      status,
+    } = req.body;
+
+    const resolvedName = (serviceName || name || '').trim();
+    let numericCost = cost !== undefined ? Number(cost) : (parseFloat(String(price || '0').replace(/[^0-9.]/g, '')) || 0);
+
+    const resolvedDate = nextRenewalDate || renewal || new Date();
+
+    if (!resolvedName) {
+      return res.status(400).json({ error: 'Service name is required', message: 'Service name is required' });
     }
 
-    const subscription = await Subscription.create({
-      user: req.user.id,
-      serviceName,
+    if (isNaN(numericCost)) {
+      return res.status(400).json({ error: 'Valid cost is required', message: 'Valid cost is required' });
+    }
+
+    const subscription = new Subscription({
+      user: userId,
+      serviceName: resolvedName,
       category: category || 'Entertainment',
-      cost: Number(cost),
-      currency: currency || req.user.preferredCurrency || 'INR',
-      billingCycle: billingCycle || 'Monthly',
-      nextRenewalDate,
+      cost: numericCost,
+      currency: currency || req.user?.preferredCurrency || 'USD',
+      billingCycle: billingCycle || cycle || 'Monthly',
+      nextRenewalDate: new Date(resolvedDate),
       status: status || 'Active',
     });
 
-    res.status(201).json({ success: true, subscription });
+    const savedSubscription = await subscription.save();
+    console.log("Subscription saved successfully with ID:", savedSubscription._id);
+
+    res.status(201).json({ success: true, subscription: savedSubscription });
   } catch (error) {
-    res.status(500).json({ message: error.message || 'Error creating subscription' });
+    console.error("Database save error:", error);
+    res.status(500).json({ error: error.message, message: error.message || 'Error creating subscription' });
   }
 };
 
-// @desc    Update subscription (e.g. toggle status Pause/Resume)
+// @desc    Update subscription (e.g. toggle status, edit details)
 // @route   PUT /api/subscriptions/:id
 exports.updateSubscription = async (req, res) => {
   try {
+    const userId = req.user?._id || req.user?.id;
     let subscription = await Subscription.findById(req.params.id);
 
     if (!subscription) {
-      return res.status(404).json({ message: 'Subscription not found' });
+      return res.status(404).json({ error: 'Subscription not found', message: 'Subscription not found' });
     }
 
-    if (subscription.user.toString() !== req.user.id && req.user.role !== 'Admin') {
-      return res.status(401).json({ message: 'Not authorized to update this subscription' });
+    if (subscription.user.toString() !== String(userId) && req.user?.role !== 'Admin') {
+      return res.status(401).json({ error: 'Not authorized', message: 'Not authorized to update this subscription' });
     }
 
-    subscription = await Subscription.findByIdAndUpdate(req.params.id, req.body, {
+    const updates = { ...req.body };
+    if (updates.name && !updates.serviceName) updates.serviceName = updates.name;
+    if (updates.price !== undefined && updates.cost === undefined) {
+      updates.cost = parseFloat(String(updates.price).replace(/[^0-9.]/g, '')) || 0;
+    }
+    if (updates.cycle && !updates.billingCycle) updates.billingCycle = updates.cycle;
+    if (updates.renewal && !updates.nextRenewalDate) updates.nextRenewalDate = updates.renewal;
+
+    subscription = await Subscription.findByIdAndUpdate(req.params.id, updates, {
       new: true,
       runValidators: true,
     });
 
     res.status(200).json({ success: true, subscription });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating subscription' });
+    console.error("Database update error:", error);
+    res.status(500).json({ error: error.message, message: error.message || 'Error updating subscription' });
   }
 };
 
@@ -67,19 +112,21 @@ exports.updateSubscription = async (req, res) => {
 // @route   DELETE /api/subscriptions/:id
 exports.deleteSubscription = async (req, res) => {
   try {
+    const userId = req.user?._id || req.user?.id;
     const subscription = await Subscription.findById(req.params.id);
 
     if (!subscription) {
-      return res.status(404).json({ message: 'Subscription not found' });
+      return res.status(404).json({ error: 'Subscription not found', message: 'Subscription not found' });
     }
 
-    if (subscription.user.toString() !== req.user.id && req.user.role !== 'Admin') {
-      return res.status(401).json({ message: 'Not authorized to delete this subscription' });
+    if (subscription.user.toString() !== String(userId) && req.user?.role !== 'Admin') {
+      return res.status(401).json({ error: 'Not authorized', message: 'Not authorized to delete this subscription' });
     }
 
     await subscription.deleteOne();
     res.status(200).json({ success: true, message: 'Subscription deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting subscription' });
+    console.error("Database delete error:", error);
+    res.status(500).json({ error: error.message, message: error.message || 'Error deleting subscription' });
   }
 };

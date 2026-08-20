@@ -1,4 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import CustomSelect from '../components/CustomSelect';
+
+const ROLE_OPTIONS = [
+  { value: 'User', label: 'User' },
+  { value: 'System Analyst', label: 'System Analyst' },
+  { value: 'Admin', label: 'Admin' },
+];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -56,16 +63,15 @@ function ActionMenu({ u, onRoleChange, onSuspend, onForceReset, onViewData, onDe
   return (
     <div className="relative flex items-center gap-2" ref={ref}>
       {/* Role selector stays visible */}
-      <select
-        value={u.role}
-        onChange={(e) => onRoleChange(u._id, e.target.value)}
-        disabled={isMaster}
-        className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-cyan-500 disabled:opacity-40"
-      >
-        <option value="User">User</option>
-        <option value="System Analyst">System Analyst</option>
-        <option value="Admin">Admin</option>
-      </select>
+      <div className="w-36">
+        <CustomSelect
+          value={u.role}
+          onChange={(val) => onRoleChange(u._id, val)}
+          options={ROLE_OPTIONS}
+          disabled={isMaster}
+          size="sm"
+        />
+      </div>
 
       {/* Actions kebab button */}
       <button
@@ -125,7 +131,7 @@ function UserDataModal({ targetUser, onClose }) {
 
   useEffect(() => {
     if (!targetUser) return;
-    fetch(`/api/admin/users/${targetUser._id}/subscriptions`, { credentials: 'include' })
+    fetch(`http://localhost:5000/api/admin/users/${targetUser._id}/subscriptions`, { credentials: 'include' })
       .then((r) => r.json())
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
@@ -237,8 +243,8 @@ export default function AdminPage({ user }) {
   const fetchData = async () => {
     try {
       const [usersRes, statsRes] = await Promise.all([
-        fetch('/api/admin/users', { credentials: 'include' }),
-        fetch('/api/admin/stats', { credentials: 'include' }),
+        fetch('http://localhost:5000/api/admin/users', { credentials: 'include' }),
+        fetch('http://localhost:5000/api/admin/stats', { credentials: 'include' }),
       ]);
       const usersData = await usersRes.json();
       const statsData = await statsRes.json();
@@ -256,7 +262,7 @@ export default function AdminPage({ user }) {
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleRoleChange = async (userId, newRole) => {
-    const res = await fetch(`/api/admin/users/${userId}/role`, {
+    const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/role`, {
       method: 'PUT', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: newRole }),
@@ -267,21 +273,21 @@ export default function AdminPage({ user }) {
   };
 
   const handleSuspend = async (userId, currentlySuspended) => {
-    const res = await fetch(`/api/admin/users/${userId}/suspend`, { method: 'PUT', credentials: 'include' });
+    const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/suspend`, { method: 'PUT', credentials: 'include' });
     const data = await res.json();
     showToast(res.ok ? `✅ ${data.message}` : data.message || 'Error');
     if (res.ok) fetchData();
   };
 
   const handleForceReset = async (userId, email) => {
-    const res = await fetch(`/api/admin/users/${userId}/force-reset`, { method: 'PUT', credentials: 'include' });
+    const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/force-reset`, { method: 'PUT', credentials: 'include' });
     const data = await res.json();
     showToast(res.ok ? `✅ ${data.message}` : data.message || 'Error');
   };
 
   const handleDeleteConfirm = async () => {
     if (!userToDelete) return;
-    const res = await fetch(`/api/admin/users/${userToDelete._id}`, { method: 'DELETE', credentials: 'include' });
+    const res = await fetch(`http://localhost:5000/api/admin/users/${userToDelete._id}`, { method: 'DELETE', credentials: 'include' });
     const data = await res.json();
     showToast(res.ok ? `✅ ${data.message}` : data.message || 'Error deleting user');
     if (res.ok) fetchData();

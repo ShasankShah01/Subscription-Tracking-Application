@@ -2,12 +2,16 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeContext = createContext();
 
-// Apply dark class instantly before first paint to prevent flash
+// Apply class instantly before first paint to prevent FOUC.
+// Default is LIGHT MODE — only respect saved preference, ignore system preference.
 const getInitialTheme = () => {
   try {
     const saved = localStorage.getItem('theme');
-    if (saved) return saved === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    // Explicit saved preference takes priority
+    if (saved === 'dark') return true;
+    if (saved === 'light') return false;
+    // No saved preference → default to LIGHT (premium clean aesthetic)
+    return false;
   } catch {
     return false;
   }

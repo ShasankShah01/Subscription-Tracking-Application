@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import AddSubscriptionModal from './AddSubscriptionModal';
+import CustomSelect from './CustomSelect';
+import { useTheme } from '../context/ThemeContext';
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'All', label: 'All Statuses' },
+  { value: 'Active', label: 'Active Only', badge: 'Active' },
+  { value: 'Paused', label: 'Paused Only', badge: 'Paused' },
+];
 
 export default function DashboardView({
   subscriptions,
@@ -15,20 +23,8 @@ export default function DashboardView({
   const [toastMessage, setToastMessage] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') !== 'light'; // Default to dark if not set
-  });
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
+  // Use global ThemeContext — no local state that conflicts
+  const { isDarkMode, toggleTheme } = useTheme();
 
   const exportToCSV = () => {
     const headers = ['Subscription Service', 'Category', 'Price', 'Billing Cycle', 'Next Renewal', 'Status'];
@@ -96,28 +92,40 @@ export default function DashboardView({
 
   // Add subscription
   const handleAddSub = (newSub) => {
-    setSubscriptions([newSub, ...subscriptions]);
-    showToast(`Added ${newSub.name} to active subscriptions`);
+    try {
+      if (!newSub || !newSub.name) return;
+      const subWithId = newSub.id ? newSub : { ...newSub, id: Date.now() };
+      setSubscriptions([subWithId, ...(subscriptions || [])]);
+      showToast(`Added ${newSub.name} to active subscriptions`);
+    } catch (err) {
+      console.error('Failed to add subscription in DashboardView:', err);
+      showToast('Failed to add subscription');
+    }
   };
 
   // Calculate live total monthly spend
-  const activeSubs = subscriptions.filter(s => s.status === 'Active');
+  const activeSubs = (subscriptions || []).filter(s => s && s.status === 'Active');
   const totalMonthlySpend = activeSubs.reduce((acc, sub) => {
-    const rawVal = parseFloat(sub.price.replace(/[^0-9.]/g, '')) || 0;
-    const monthlyVal = sub.cycle === 'Yearly' ? rawVal / 12 : rawVal;
+    const priceStr = String(sub?.price || '0');
+    const rawVal = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
+    const monthlyVal = sub?.cycle === 'Yearly' ? rawVal / 12 : rawVal;
     return acc + monthlyVal;
   }, 0);
 
-  const pausedSubs = subscriptions.filter(s => s.status === 'Paused');
+  const pausedSubs = (subscriptions || []).filter(s => s && s.status === 'Paused');
   const pausedMonthlySavings = pausedSubs.reduce((acc, sub) => {
-    const rawVal = parseFloat(sub.price.replace(/[^0-9.]/g, '')) || 0;
+    const priceStr = String(sub?.price || '0');
+    const rawVal = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
     return acc + rawVal;
   }, 0);
 
   // Filter subscriptions
-  let filteredSubs = subscriptions.filter(sub => {
-    const matchesSearch = sub.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          sub.category.toLowerCase().includes(searchTerm.toLowerCase());
+  let filteredSubs = (subscriptions || []).filter(sub => {
+    if (!sub) return false;
+    const nameStr = String(sub.name || '').toLowerCase();
+    const catStr = String(sub.category || '').toLowerCase();
+    const searchLower = String(searchTerm || '').toLowerCase();
+    const matchesSearch = nameStr.includes(searchLower) || catStr.includes(searchLower);
     const matchesCategory = selectedCategory === 'All' || sub.category === selectedCategory;
     const matchesStatus = selectedStatus === 'All' || sub.status === selectedStatus;
     return matchesSearch && matchesCategory && matchesStatus;
@@ -187,7 +195,7 @@ export default function DashboardView({
 
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={toggleTheme}
               className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors"
               title="Toggle Theme"
             >
@@ -319,15 +327,14 @@ export default function DashboardView({
           </div>
 
           {/* Status Filter */}
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-cyan-500"
-          >
-            <option value="All">All Statuses</option>
-            <option value="Active">Active Only</option>
-            <option value="Paused">Paused Only</option>
-          </select>
+          <div className="w-36">
+            <CustomSelect
+              value={selectedStatus}
+              onChange={(val) => setSelectedStatus(val)}
+              options={STATUS_FILTER_OPTIONS}
+              size="sm"
+            />
+          </div>
 
           <button
             onClick={exportToCSV}
@@ -363,54 +370,66 @@ export default function DashboardView({
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-medium">
-                {filteredSubs.length > 0 ? (
-                  filteredSubs.map((sub) => (
-                    <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-slate-900 dark:text-white shadow-inner">
-                            {sub.name.charAt(0)}
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-900 dark:text-white block">{sub.name}</span>
-                            <span className="text-[11px] text-slate-500">{sub.cycle} billing</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400">{sub.category}</td>
-                      <td className="px-6 py-4">
-                        <span className="font-bold text-slate-900 dark:text-white">{sub.price}</span>
-                        <span className="text-xs text-slate-500"> / {sub.cycle}</span>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-slate-700 dark:text-slate-300">{sub.renewal}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${sub.color}`}>
-                          {sub.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button
-                          onClick={() => handleToggleStatus(sub.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                            sub.status === 'Paused'
-                              ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30 hover:bg-emerald-200 dark:hover:bg-emerald-500/20'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
-                          }`}
-                        >
-                          {sub.status === 'Paused' ? 'Resume' : 'Pause'}
-                        </button>
+                           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-medium">
+                {(filteredSubs || []).length > 0 ? (
+                  (filteredSubs || []).map((sub) => {
+                    if (!sub) return null;
+                    let displayRenewal = 'Next Month';
+                    if (sub?.renewal) {
+                      if (typeof sub.renewal === 'string') {
+                        displayRenewal = sub.renewal.includes('T') ? sub.renewal.split('T')[0] : sub.renewal;
+                      } else if (sub.renewal instanceof Date) {
+                        displayRenewal = sub.renewal.toISOString().split('T')[0];
+                      } else {
+                        displayRenewal = String(sub.renewal);
+                      }
+                    }
 
-                        <button
-                          onClick={() => handleDeleteSub(sub.id, sub.name)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-500/20 transition-all"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                    return (
+                      <tr key={sub.id || Math.random()} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-slate-900 dark:text-white shadow-inner">
+                              {(sub.name || 'S').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-900 dark:text-white block">{sub.name || 'Subscription'}</span>
+                              <span className="text-[11px] text-slate-500">{sub.cycle || 'Monthly'} billing</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400">{sub.category || 'General'}</td>
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-slate-900 dark:text-white">{sub.price || '$0.00'}</span>
+                          <span className="text-xs text-slate-500"> / {sub.cycle || 'Monthly'}</span>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-slate-700 dark:text-slate-300">{displayRenewal}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${sub.color || 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                            {sub.status || 'Active'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right space-x-2">
+                          <button
+                            onClick={() => handleToggleStatus(sub.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                              sub.status === 'Paused'
+                                ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30 hover:bg-emerald-200 dark:hover:bg-emerald-500/20'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {sub.status === 'Paused' ? 'Resume' : 'Pause'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSub(sub.id, sub.name)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-500/20 transition-all"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center text-slate-500 text-sm">

@@ -1,44 +1,54 @@
-import React, { useMemo } from 'react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import React, { useMemo, lazy, Suspense } from 'react';
 import { convertCurrency, formatPrice } from '../utils/currency';
 
-export default function AnalyticsView({ subscriptions, displayCurrency }) {
+// ── Code-split Recharts: lazy-load the entire charts subcomponent ─────────────
+// This keeps the initial dashboard bundle lightweight.
+const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
+
+// Skeleton loader shown while Recharts chunk loads
+function ChartSkeleton() {
+  return (
+    <div className="h-[300px] w-full flex flex-col gap-4 animate-pulse p-2">
+      <div className="h-4 w-1/3 rounded-full bg-slate-200 dark:bg-slate-800" />
+      <div className="flex-1 rounded-2xl bg-slate-100 dark:bg-slate-800/60" />
+    </div>
+  );
+}
+
+export default function AnalyticsView({ subscriptions = [], displayCurrency = 'USD' }) {
   // 1. Spending by Category
   const categoryData = useMemo(() => {
-    const activeSubs = subscriptions.filter(s => s.status !== 'Paused');
+    const activeSubs = (subscriptions || []).filter(s => s && s.status !== 'Paused');
     const categories = {};
     activeSubs.forEach(sub => {
-      const rawVal = parseFloat(sub.price.replace(/[^0-9.]/g, '')) || 0;
-      const subCurr = sub.currency || 'USD';
+      const priceStr = String(sub?.price || '0');
+      const rawVal = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
+      const subCurr = sub?.currency || 'USD';
       const valInUSD = convertCurrency(rawVal, subCurr, 'USD');
-      const monthlyUSD = sub.cycle === 'Yearly' ? valInUSD / 12 : valInUSD;
-      categories[sub.category] = (categories[sub.category] || 0) + monthlyUSD;
+      const monthlyUSD = sub?.cycle === 'Yearly' ? valInUSD / 12 : valInUSD;
+      const catKey = String(sub?.category || 'General');
+      categories[catKey] = (categories[catKey] || 0) + monthlyUSD;
     });
 
     return Object.keys(categories).map(key => ({
       name: key,
-      value: convertCurrency(categories[key], 'USD', displayCurrency)
+      value: convertCurrency(categories[key], 'USD', displayCurrency),
     })).sort((a, b) => b.value - a.value);
   }, [subscriptions, displayCurrency]);
 
-  const COLORS = ['#0ea5e9', '#10b981', '#6366f1', '#f43f5e', '#a855f7', '#f59e0b', '#ec4899'];
-
-  // 2. Upcoming Monthly Expenses (Simple 6-month projection)
+  // 2. Upcoming Monthly Expenses (6-month projection)
   const projectionData = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentMonthIdx = new Date().getMonth();
     const data = [];
-    
-    // Static base cost of monthly active subs
-    const activeSubs = subscriptions.filter(s => s.status !== 'Paused');
+
+    const activeSubs = (subscriptions || []).filter(s => s && s.status !== 'Paused');
     let baseMonthlyUSD = 0;
     activeSubs.forEach(sub => {
-      const rawVal = parseFloat(sub.price.replace(/[^0-9.]/g, '')) || 0;
-      const subCurr = sub.currency || 'USD';
-      const valInUSD = convertCurrency(rawVal, subCurr, 'USD');
-      if (sub.cycle === 'Monthly') {
-        baseMonthlyUSD += valInUSD;
-      }
+      const priceStr = String(sub?.price || '0');
+      const rawVal = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
+      const valInUSD = convertCurrency(rawVal, sub?.currency || 'USD', 'USD');
+      if (sub?.cycle === 'Monthly') baseMonthlyUSD += valInUSD;
     });
 
     for (let i = 0; i < 6; i++) {
@@ -46,13 +56,13 @@ export default function AnalyticsView({ subscriptions, displayCurrency }) {
       const monthLabel = months[mIdx];
       let projectedUSD = baseMonthlyUSD;
 
-      // Add yearly subs that might trigger in this month (mocking - assuming equally distributed for this demo)
       activeSubs.forEach(sub => {
-        if (sub.cycle === 'Yearly') {
-          const rawVal = parseFloat(sub.price.replace(/[^0-9.]/g, '')) || 0;
-          const valInUSD = convertCurrency(rawVal, sub.currency || 'USD', 'USD');
-          // If the renewal date string contains this month
-          if (sub.renewal.includes(monthLabel)) {
+        if (sub?.cycle === 'Yearly') {
+          const priceStr = String(sub?.price || '0');
+          const rawVal = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
+          const valInUSD = convertCurrency(rawVal, sub?.currency || 'USD', 'USD');
+          const renewalStr = String(sub?.renewal || '');
+          if (renewalStr.includes(monthLabel)) {
             projectedUSD += valInUSD;
           }
         }
@@ -60,86 +70,100 @@ export default function AnalyticsView({ subscriptions, displayCurrency }) {
 
       data.push({
         name: monthLabel,
-        amount: convertCurrency(projectedUSD, 'USD', displayCurrency)
+        amount: convertCurrency(projectedUSD, 'USD', displayCurrency),
       });
     }
     return data;
   }, [subscriptions, displayCurrency]);
 
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg shadow-xl text-xs font-semibold">
-          <p className="text-slate-300 mb-1">{payload[0].name || payload[0].payload.name}</p>
-          <p className="text-cyan-400 font-bold">
-            {formatPrice(payload[0].value, displayCurrency)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Summary stat cards
+  const activeSubs = (subscriptions || []).filter(s => s && s.status === 'Active');
+  const totalSpend = activeSubs.reduce((acc, sub) => {
+    const priceStr = String(sub?.price || '0');
+    const raw = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
+    const usd = convertCurrency(raw, sub?.currency || 'USD', 'USD');
+    return acc + (sub?.cycle === 'Yearly' ? usd / 12 : usd);
+  }, 0);
+  const displayTotal = convertCurrency(totalSpend, 'USD', displayCurrency);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
+      {/* Page Header */}
       <div>
-        <h2 className="text-2xl font-black text-white">Financial Analytics</h2>
-        <p className="text-sm text-slate-400">Insights into your subscription spending habits.</p>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          Financial Analytics
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Insights into your subscription spending habits.
+        </p>
       </div>
 
+      {/* Summary Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          {
+            label: 'Monthly Spend',
+            value: formatPrice(displayTotal, displayCurrency),
+            sub: `${displayCurrency} — active only`,
+            accent: 'text-royal-purple-600 dark:text-royal-purple-400',
+            border: 'hover:border-royal-purple-300 dark:hover:border-royal-purple-500/30',
+          },
+          {
+            label: 'Active Subscriptions',
+            value: activeSubs.length,
+            sub: `${subscriptions.filter(s => s.status === 'Trial').length} in trial`,
+            accent: 'text-emerald-600 dark:text-emerald-400',
+            border: 'hover:border-emerald-300 dark:hover:border-emerald-500/30',
+          },
+          {
+            label: 'Spending Categories',
+            value: categoryData.length,
+            sub: 'distinct categories tracked',
+            accent: 'text-gold-600 dark:text-gold-400',
+            border: 'hover:border-gold-300 dark:hover:border-gold-500/30',
+          },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className={`p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl card-hover transition-colors ${card.border}`}
+          >
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {card.label}
+            </div>
+            <div className={`text-3xl font-black mt-2 ${card.accent}`}>{card.value}</div>
+            <div className="mt-1.5 text-xs text-slate-500 dark:text-slate-500">{card.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts — lazy loaded */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* Category Pie Chart */}
-        <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
-          <h3 className="text-sm font-bold text-slate-300 mb-6 uppercase tracking-wider">Spending by Category</h3>
-          {categoryData.length > 0 ? (
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={80}
-                    outerRadius={110}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: '12px', fontWeight: '600', color: '#cbd5e1' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-sm text-slate-500">
-              No active subscriptions to analyze.
-            </div>
-          )}
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl card-hover">
+          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-6 uppercase tracking-wider">
+            Spending by Category
+          </h3>
+          <Suspense fallback={<ChartSkeleton />}>
+            <AnalyticsCharts
+              type="pie"
+              data={categoryData}
+              displayCurrency={displayCurrency}
+            />
+          </Suspense>
         </div>
 
-        {/* Expenses Bar Chart */}
-        <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl">
-          <h3 className="text-sm font-bold text-slate-300 mb-6 uppercase tracking-wider">Upcoming Monthly Expenses (6 Months)</h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={projectionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val > 1000 ? (val/1000).toFixed(1)+'k' : val}`} />
-                <Tooltip cursor={{ fill: '#0f172a' }} content={<CustomTooltip />} />
-                <Bar dataKey="amount" fill="#0ea5e9" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                  {projectionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : '#0ea5e9'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        {/* Monthly Projection Bar Chart */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl card-hover">
+          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-6 uppercase tracking-wider">
+            Upcoming Monthly Expenses (6 Months)
+          </h3>
+          <Suspense fallback={<ChartSkeleton />}>
+            <AnalyticsCharts
+              type="bar"
+              data={projectionData}
+              displayCurrency={displayCurrency}
+            />
+          </Suspense>
         </div>
       </div>
     </div>

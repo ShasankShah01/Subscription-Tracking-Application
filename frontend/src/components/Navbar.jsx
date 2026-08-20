@@ -45,9 +45,9 @@ export default function Navbar({
         {/* Brand Logo */}
         <button onClick={onGoLanding} className="flex items-center gap-3 group text-left">
           <div className="relative flex items-center justify-center">
-            <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-400 opacity-75 blur transition duration-300 group-hover:opacity-100" />
+            <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-royal-purple-600 to-gold-400 opacity-75 blur transition duration-300 group-hover:opacity-100" />
             <div className="relative w-10 h-10 rounded-xl bg-slate-950 flex items-center justify-center font-black text-xl text-white border border-slate-800 shadow-inner">
-              <span className="bg-gradient-to-tr from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-tr from-royal-purple-400 to-gold-400 bg-clip-text text-transparent">
                 S
               </span>
             </div>
@@ -55,7 +55,7 @@ export default function Navbar({
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-2xl tracking-tight text-white">
-                ST<span className="text-cyan-400">Art</span>
+                ST<span className="text-royal-purple-400">Art</span>
               </span>
             </div>
             <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 -mt-1">
@@ -70,7 +70,7 @@ export default function Navbar({
             onClick={onGoLanding}
             className={`px-4 py-2 text-xs font-semibold rounded-full transition-all ${
               currentView === 'landing'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                ? 'bg-royal-purple-500/20 text-royal-purple-300 border border-royal-purple-500/30'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -104,14 +104,14 @@ export default function Navbar({
 
         {/* Action Buttons & Auth */}
         <div className="hidden md:flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-semibold text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-royal-purple-500/10 border border-royal-purple-500/20 text-[11px] font-semibold text-royal-purple-400">
+            <span className="w-2 h-2 rounded-full bg-royal-purple-400 animate-pulse" />
             100% Free Tool
           </span>
 
           <button
             onClick={onGoDashboard}
-            className="px-5 py-2.5 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 to-emerald-400 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-royal-purple-600 to-royal-purple-500 shadow-lg shadow-royal-purple-500/20 hover:shadow-royal-purple-500/40 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-2"
           >
             <span>View Dashboard</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,7 +123,7 @@ export default function Navbar({
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-cyan-500/20 border border-slate-200 dark:border-cyan-500/40 text-cyan-600 dark:text-cyan-300 flex items-center justify-center font-bold text-sm shadow-inner hover:bg-slate-200 dark:hover:bg-cyan-500/30 transition-colors"
+                className="w-10 h-10 rounded-xl bg-royal-purple-500/20 border border-royal-purple-500/40 text-royal-purple-300 flex items-center justify-center font-bold text-sm shadow-inner hover:bg-royal-purple-500/30 transition-colors"
               >
                 {(user?.name || 'U').charAt(0).toUpperCase()}
               </button>
@@ -223,7 +223,7 @@ export default function Navbar({
                 setMobileMenuOpen(false);
                 onGoDashboard();
               }}
-              className="w-full py-3 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 to-emerald-400 text-center"
+              className="w-full py-3 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-royal-purple-600 to-royal-purple-500 text-center"
             >
               View Dashboard
             </button>

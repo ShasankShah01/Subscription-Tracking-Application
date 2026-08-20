@@ -2,9 +2,22 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// ─────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────
+const MASTER_ADMIN_EMAIL = 'shasankshah.25.mca@iite.indusuni.ac.in';
+const MASTER_ADMIN_PASSWORD = 'Sh@$ank0110';
+
+// Password Regex: min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;
+
+// ─────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────
+
 // Helper to determine preferred currency based on country selection
 const getCurrencyByCountry = (country) => {
-  const c = (country || '').toLowerCase().strip ? country.toLowerCase().trim() : '';
+  const c = (country || '').toLowerCase().trim();
   if (c.includes('india')) return 'INR';
   if (c.includes('united states') || c.includes('usa') || c.includes('us')) return 'USD';
   if (c.includes('united kingdom') || c.includes('uk') || c.includes('england')) return 'GBP';
@@ -14,9 +27,6 @@ const getCurrencyByCountry = (country) => {
   if (c.includes('japan')) return 'JPY';
   return 'USD';
 };
-
-// Password Regex: min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;
 
 // Helper to generate JWT token and send HttpOnly cookie
 const sendTokenResponse = (user, statusCode, res) => {
@@ -50,8 +60,10 @@ const sendTokenResponse = (user, statusCode, res) => {
     });
 };
 
+// ─────────────────────────────────────────────────────────────
 // @desc    Register new user
 // @route   POST /api/auth/register
+// ─────────────────────────────────────────────────────────────
 exports.register = async (req, res) => {
   try {
     const { name, email, password, country } = req.body;
@@ -60,19 +72,20 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Please provide all required fields including Country' });
     }
 
-    // Strict Password Validation
-    const isMasterAdmin = email.toLowerCase() === 'shasankshah.25.mca@iite.indusuni.ac.in';
-    const bypassPassword = isMasterAdmin && password === 'Sh@$ank0110';
+    // Strict: check if user already exists
+    const userExists = await User.findOne({ email: email.toLowerCase() });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists with this email address' });
+    }
+
+    // Strict Password Validation (bypass for master admin only)
+    const isMasterAdmin = email.toLowerCase() === MASTER_ADMIN_EMAIL;
+    const bypassPassword = isMasterAdmin && password === MASTER_ADMIN_PASSWORD;
 
     if (!bypassPassword && !PASSWORD_REGEX.test(password)) {
       return res.status(400).json({
         message: 'Password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.'
       });
-    }
-
-    const userExists = await User.findOne({ email: email.toLowerCase() });
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists with this email address' });
     }
 
     // Auto-detect currency by country
@@ -88,6 +101,7 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       country,
       preferredCurrency,
+      // Strictly enforce Admin role for master admin email
       role: isMasterAdmin ? 'Admin' : 'User',
     });
 
@@ -98,8 +112,10 @@ exports.register = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
 // @desc    Login user
 // @route   POST /api/auth/login
+// ─────────────────────────────────────────────────────────────
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -108,7 +124,54 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const emailLower = email.toLowerCase();
+
+    // ── ADMIN FAILSAFE: Auto-create Admin account if it doesn't exist ──────────
+    if (emailLower === MASTER_ADMIN_EMAIL) {
+      let adminUser = await User.findOne({ email: emailLower });
+
+      if (!adminUser) {
+        // Admin doesn't exist in DB — auto-create them now
+        console.log('[AUTH] Master admin not found — auto-creating account...');
+        const isCorrectMasterPassword = password === MASTER_ADMIN_PASSWORD;
+        if (!isCorrectMasterPassword) {
+          return res.status(401).json({ message: 'Invalid credentials for admin account' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        adminUser = await User.create({
+          name: 'Shasank Shah',
+          email: emailLower,
+          password: hashedPassword,
+          country: 'India',
+          preferredCurrency: 'INR',
+          role: 'Admin',
+        });
+
+        console.log('[AUTH] Master admin account auto-created successfully.');
+        return sendTokenResponse(adminUser, 201, res);
+      }
+
+      // Admin exists — verify password and enforce role
+      const isMatch = await bcrypt.compare(password, adminUser.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Strictly enforce Admin role (in case it was downgraded in DB)
+      if (adminUser.role !== 'Admin') {
+        adminUser.role = 'Admin';
+        await adminUser.save();
+      }
+
+      return sendTokenResponse(adminUser, 200, res);
+    }
+    // ── END ADMIN FAILSAFE ──────────────────────────────────────────────────────
+
+    // Standard user login
+    const user = await User.findOne({ email: emailLower });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -118,10 +181,9 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // RBAC OVERRIDE
-    const emailLower = user.email.toLowerCase();
+    // RBAC override: ensure correct roles by name/email patterns
     const nameLower = user.name.toLowerCase();
-    if (emailLower === 'shasankshah.25.mca@iite.indusuni.ac.in' || emailLower === 'shasank' || emailLower === 'shasank0110' || nameLower === 'shasank' || nameLower === 'shasank shah') {
+    if (nameLower === 'shasank' || nameLower === 'shasank shah') {
       if (user.role !== 'Admin') {
         user.role = 'Admin';
         await user.save();
@@ -135,8 +197,10 @@ exports.login = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
 // @desc    Logout user / Clear cookie
 // @route   POST /api/auth/logout
+// ─────────────────────────────────────────────────────────────
 exports.logout = (req, res) => {
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
@@ -145,13 +209,51 @@ exports.logout = (req, res) => {
   res.status(200).json({ success: true, message: 'User logged out successfully' });
 };
 
+// ─────────────────────────────────────────────────────────────
 // @desc    Get current user profile
 // @route   GET /api/auth/me
+// ─────────────────────────────────────────────────────────────
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     res.status(200).json({ success: true, user });
   } catch (error) {
     res.status(500).json({ message: 'Server error fetching user profile' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// @desc    Update current user profile (name, country, preferredCurrency)
+// @route   PUT /api/auth/me
+// ─────────────────────────────────────────────────────────────
+exports.updateMe = async (req, res) => {
+  try {
+    const { name, country, preferredCurrency } = req.body;
+
+    const updateFields = {};
+    if (name && name.trim()) updateFields.name = name.trim();
+    if (country && country.trim()) {
+      updateFields.country = country.trim();
+      // Auto-recalculate currency unless explicitly provided
+      if (!preferredCurrency) {
+        updateFields.preferredCurrency = getCurrencyByCountry(country);
+      }
+    }
+    if (preferredCurrency) updateFields.preferredCurrency = preferredCurrency;
+
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({ message: 'No valid fields provided for update' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Server error updating profile' });
   }
 };

@@ -3,6 +3,54 @@
 /* ── Tailwind v4: explicit dark-mode class strategy ───────────────────────── */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROYAL PREMIUM COLOR PALETTE — Tailwind v4 @theme block
+   All custom tokens are registered here and available as Tailwind utilities
+   e.g. bg-royal-purple-600, text-gold-400, border-midnight-900
+   ═══════════════════════════════════════════════════════════════════════════ */
+@theme {
+  /* ── Royal Purple Scale (soft lavender → deep regal purple) ─────────────── */
+  --color-royal-purple-50:  #f5f3ff;
+  --color-royal-purple-100: #ede9fe;
+  --color-royal-purple-200: #ddd6fe;
+  --color-royal-purple-300: #c4b5fd;
+  --color-royal-purple-400: #a78bfa;
+  --color-royal-purple-500: #8b5cf6;
+  --color-royal-purple-600: #7c3aed;
+  --color-royal-purple-700: #6d28d9;
+  --color-royal-purple-800: #5b21b6;
+  --color-royal-purple-900: #4c1d95;
+  --color-royal-purple-950: #2e1065;
+
+  /* ── Metallic & Champagne Gold Scale ─────────────────────────────────── */
+  --color-gold-50:  #fefce8;
+  --color-gold-100: #fef9c3;
+  --color-gold-200: #fef08a;
+  --color-gold-300: #fde047;
+  --color-gold-400: #facc15;
+  --color-gold-500: #eab308;
+  --color-gold-600: #ca8a04;
+  --color-gold-700: #a16207;
+  --color-gold-800: #854d0e;
+  --color-gold-900: #713f12;
+  --color-gold-950: #422006;
+  --color-champagne: #F7E7CE;
+  --color-champagne-gold: #e5c158;
+
+  /* ── Midnight Black Scale (crisp white → absolute midnight black) ────────── */
+  --color-midnight-50:  #ffffff;
+  --color-midnight-100: #f8fafc;
+  --color-midnight-200: #f1f5f9;
+  --color-midnight-300: #e2e8f0;
+  --color-midnight-400: #94a3b8;
+  --color-midnight-500: #64748b;
+  --color-midnight-600: #475569;
+  --color-midnight-700: #1e293b;
+  --color-midnight-800: #111827;
+  --color-midnight-900: #0a0a0a;
+  --color-midnight-950: #050505;
+}
+
 /* ── Global base styles ───────────────────────────────────────────────────── */
 html {
   scroll-behavior: smooth;
@@ -14,30 +62,32 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Premium light mode default — warm off-white, NOT harsh pure white */
-  background-color: #f1f5f9; /* slate-100 */
-  color: #1e293b;            /* slate-800 */
+  /* ── LIGHT MODE default: crisp white surface, deep slate text ─────────── */
+  background-color: #f8fafc;
+  color: #1e293b;
 
   /* Buttery smooth theme transitions */
-  transition: background-color 500ms cubic-bezier(0.4, 0, 0.2, 1),
-              color 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              color 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Premium dark mode — ultra-deep midnight, NOT flat slate-950 */
+/* ── DARK MODE: exquisite OLED midnight black backgrounds (#050505) ────── */
 .dark body {
-  background-color: #0B1120;
-  color: #e2e8f0; /* slate-200 — soft white, not harsh pure white */
+  background-color: #050505;
+  color: #e2e8f0;
 }
 
 /*
-  Scoped transition sweep — applied only to structural UI elements,
-  NOT to all (*) which breaks animations, spinners, and SVG transitions.
+  Scoped theme transition sweep — applied to structural UI elements only.
+  Avoids breaking spinners, SVG animations, and Recharts transitions.
 */
 .transition-theme,
 header, aside, main, nav, footer,
 [class*="bg-white"],
 [class*="bg-slate"],
+[class*="bg-zinc"],
 [class*="border-slate"],
+[class*="border-zinc"],
 [class*="text-slate"] {
   transition-property: background-color, border-color, color;
   transition-duration: 300ms;
@@ -61,24 +111,76 @@ header, aside, main, nav, footer,
 }
 
 /* ── Theme-aware scrollbar ────────────────────────────────────────────────── */
-::-webkit-scrollbar        { width: 5px; }
+::-webkit-scrollbar        { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track  { background: transparent; }
-::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 999px; }  /* slate-300 light */
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }                   /* slate-400 */
+::-webkit-scrollbar-thumb  { background: #ddd6fe; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #c4b5fd; }
 
 .dark ::-webkit-scrollbar-track { background: transparent; }
-.dark ::-webkit-scrollbar-thumb { background: #1e293b; }                   /* slate-800 dark */
-.dark ::-webkit-scrollbar-thumb:hover { background: #334155; }             /* slate-700 */
+.dark ::-webkit-scrollbar-thumb { background: rgba(247, 231, 206, 0.2); }
+.dark ::-webkit-scrollbar-thumb:hover { background: rgba(247, 231, 206, 0.4); }
 
 /* ── Theme toggle animations ─────────────────────────────────────────────── */
 @keyframes sun-glow {
-  0%, 100% { box-shadow: 0 0 0   0    rgba(251, 191,  36, 0); }
-  50%       { box-shadow: 0 0 12px 3px rgba(251, 191,  36, 0.5); }
+  0%, 100% { box-shadow: 0 0 0   0    rgba(234, 179, 8, 0); }
+  50%       { box-shadow: 0 0 14px 4px rgba(234, 179, 8, 0.45); }
 }
 @keyframes moon-glow {
   0%, 100% { box-shadow: 0 0 0   0    rgba(139, 92, 246, 0); }
-  50%       { box-shadow: 0 0 12px 3px rgba(139, 92, 246, 0.5); }
+  50%       { box-shadow: 0 0 14px 4px rgba(139, 92, 246, 0.5); }
 }
 
 .toggle-icon-sun  { animation: sun-glow  2.5s ease-in-out infinite; }
 .toggle-icon-moon { animation: moon-glow 2.5s ease-in-out infinite; }
+
+/* ── Premium micro-animation utilities ───────────────────────────────────── */
+@keyframes lift {
+  from { transform: translateY(0)  scale(1); }
+  to   { transform: translateY(-4px) scale(1.005); }
+}
+
+/* Hover lift for interactive cards */
+.card-hover {
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 200ms ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -12px rgba(124, 58, 237, 0.15),
+              0 8px  16px -8px  rgba(0, 0, 0, 0.12);
+}
+
+.dark .card-hover:hover {
+  box-shadow: 0 20px 40px -12px rgba(124, 58, 237, 0.25),
+              0 8px  16px -8px  rgba(0, 0, 0, 0.4);
+}
+
+/* Primary CTA button with Royal Purple & Radiant Gold transition */
+.btn-primary-cta {
+  background: linear-gradient(to right, #6d28d9, #eab308);
+  transition: all 300ms ease-out;
+}
+.btn-primary-cta:hover {
+  background: linear-gradient(to right, #7c3aed, #f59e0b);
+  transform: scale(1.02);
+}
+.btn-primary-cta:active {
+  transform: scale(0.95);
+}
+
+/* Glassmorphism utility */
+.glass-light {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+}
+
+.glass-dark {
+  background-color: rgba(10, 10, 10, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+}
