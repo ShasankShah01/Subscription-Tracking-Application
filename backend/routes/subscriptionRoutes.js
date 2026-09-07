@@ -5,10 +5,13 @@ const {
   createSubscription,
   updateSubscription,
   deleteSubscription,
+  getAnalytics,
 } = require('../controllers/subscriptionController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.use(protect); // All subscription routes are protected
+
+router.get('/analytics', getAnalytics);
 
 router.route('/')
   .get(getSubscriptions)

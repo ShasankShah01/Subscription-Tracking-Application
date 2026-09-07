@@ -4,9 +4,13 @@ import { CURRENCY_SYMBOLS } from '../utils/currency';
 
 const STANDARD_CATEGORIES = [
   'Entertainment',
+  'Cloud & Hosting',
+  'Developer Tools',
+  'Domains & DNS',
+  'AI Tools',
   'Infrastructure',
   'Design',
-  'AI Tools',
+  'Productivity & SaaS',
   'Music',
   'Fitness',
   'Utilities',
@@ -51,6 +55,9 @@ export default function AddSubscriptionModal({
   onSubmit,
   initialData = null,
   displayCurrency = 'USD',
+  draftData = null,
+  onUpdateDraft = null,
+  onClearDraft = null,
 }) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Entertainment');
@@ -110,21 +117,62 @@ export default function AddSubscriptionModal({
       setCycle(initialData.cycle || initialData.billingCycle || 'Monthly');
       setRenewal(initialData.renewal || initialData.nextRenewalDate || '');
       setStatus(initialData.status || 'Active');
-    } else {
-      setName('');
-      setCategory('Entertainment');
-      setCustomCategory('');
+    } else if (draftData) {
+      setName(draftData.name || '');
+      setCategory(draftData.category || 'Entertainment');
+      setCustomCategory(draftData.customCategory || '');
+      setCurrency(draftData.currency || displayCurrency || 'USD');
+      setPrice(draftData.price || '');
+      setCycle(draftData.cycle || 'Monthly');
+      setRenewal(draftData.renewal || '');
+      setStatus(draftData.status || 'Active');
+    } else if (!draftData && isOpen) {
       setCurrency(displayCurrency || 'USD');
-      setPrice('');
-      setCycle('Monthly');
-      setRenewal('');
-      setStatus('Active');
     }
     setIsCurrencyOpen(false);
     setIsCategoryOpen(false);
     setIsCycleOpen(false);
     setIsStatusOpen(false);
-  }, [initialData, isOpen, displayCurrency]);
+  }, [initialData, draftData, isOpen, displayCurrency]);
+
+  const updateField = (field, value) => {
+    if (field === 'name') setName(value);
+    if (field === 'category') setCategory(value);
+    if (field === 'customCategory') setCustomCategory(value);
+    if (field === 'currency') setCurrency(value);
+    if (field === 'price') setPrice(value);
+    if (field === 'cycle') setCycle(value);
+    if (field === 'renewal') setRenewal(value);
+    if (field === 'status') setStatus(value);
+
+    if (!initialData && onUpdateDraft) {
+      onUpdateDraft({
+        name: field === 'name' ? value : name,
+        category: field === 'category' ? value : category,
+        customCategory: field === 'customCategory' ? value : customCategory,
+        currency: field === 'currency' ? value : currency,
+        price: field === 'price' ? value : price,
+        cycle: field === 'cycle' ? value : cycle,
+        renewal: field === 'renewal' ? value : renewal,
+        status: field === 'status' ? value : status,
+      });
+    }
+  };
+
+  const handleClear = () => {
+    setName('');
+    setCategory('Entertainment');
+    setCustomCategory('');
+    setCurrency(displayCurrency || 'USD');
+    setPrice('');
+    setCycle('Monthly');
+    setRenewal('');
+    setStatus('Active');
+    setFormError('');
+    if (onClearDraft) {
+      onClearDraft();
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -210,6 +258,10 @@ export default function AddSubscriptionModal({
         await saveHandler(payload);
       }
 
+      if (!initialData && onClearDraft) {
+        onClearDraft();
+      }
+
       if (typeof onClose === 'function') {
         onClose();
       }
@@ -223,7 +275,7 @@ export default function AddSubscriptionModal({
     /* Modal Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Modal Shell — glassmorphism */}
       <div className="relative w-full max-w-lg rounded-3xl bg-white/95 dark:bg-zinc-950/90 border border-slate-200 dark:border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl p-6 sm:p-8 animate-in zoom-in-95 duration-200">
@@ -274,9 +326,9 @@ export default function AddSubscriptionModal({
             <input
               type="text"
               required
-              placeholder="e.g. GitHub Copilot, Spotify, AWS"
+              placeholder="e.g. GitHub Copilot, AWS, Spotify, DigitalOcean"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => updateField('name', e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200/80 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-amber-400 dark:focus:ring-[#F7E7CE]/40 focus:border-transparent transition-all"
             />
           </div>
@@ -320,7 +372,7 @@ export default function AddSubscriptionModal({
                         key={cat}
                         type="button"
                         onClick={() => {
-                          setCategory(cat);
+                          updateField('category', cat);
                           setIsCategoryOpen(false);
                         }}
                         className={`w-full px-3 py-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors ${
@@ -343,7 +395,7 @@ export default function AddSubscriptionModal({
                   <button
                     type="button"
                     onClick={() => {
-                      setCategory('Custom');
+                      updateField('category', 'Custom');
                       setIsCategoryOpen(false);
                     }}
                     className={`w-full px-3 py-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 transition-colors ${
@@ -374,7 +426,7 @@ export default function AddSubscriptionModal({
                   required={isCustom}
                   placeholder="Custom category name..."
                   value={customCategory}
-                  onChange={(e) => setCustomCategory(e.target.value)}
+                  onChange={(e) => updateField('customCategory', e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl bg-violet-50/50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-500/30 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs shadow-inner focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                 />
                 <div className="flex justify-end pr-1 mt-0.5">
@@ -422,7 +474,7 @@ export default function AddSubscriptionModal({
                             key={c.code}
                             type="button"
                             onClick={() => {
-                              setCurrency(c.code);
+                              updateField('currency', c.code);
                               setIsCurrencyOpen(false);
                             }}
                             className={`w-full px-3 py-1.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors ${
@@ -452,7 +504,7 @@ export default function AddSubscriptionModal({
                   required
                   placeholder="14.99"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => updateField('price', e.target.value)}
                   className="w-full px-3 py-2.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:outline-none"
                 />
               </div>
@@ -495,7 +547,7 @@ export default function AddSubscriptionModal({
                         key={c}
                         type="button"
                         onClick={() => {
-                          setCycle(c);
+                          updateField('cycle', c);
                           setIsCycleOpen(false);
                         }}
                         className={`w-full px-3 py-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors ${
@@ -555,7 +607,7 @@ export default function AddSubscriptionModal({
                         key={st.value}
                         type="button"
                         onClick={() => {
-                          setStatus(st.value);
+                          updateField('status', st.value);
                           setIsStatusOpen(false);
                         }}
                         className={`w-full px-3 py-2 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors ${
@@ -590,24 +642,32 @@ export default function AddSubscriptionModal({
             </label>
             <CustomDatePicker
               value={renewal}
-              onChange={(val) => setRenewal(val)}
+              onChange={(val) => updateField('renewal', val)}
               placeholder="Select next renewal date..."
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="pt-3 flex gap-3">
+          <div className="pt-3 flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl font-semibold text-xs text-slate-700 bg-slate-100/80 hover:bg-slate-200 dark:text-slate-300 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="py-3 px-4 rounded-xl font-semibold text-xs text-slate-700 bg-slate-100/80 hover:bg-slate-200 dark:text-slate-300 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
+              onClick={handleClear}
+              className="py-3 px-3.5 rounded-xl font-semibold text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-colors cursor-pointer"
+              title="Clear all inputs in this form"
+            >
+              Clear Form
+            </button>
+            <button
+              type="button"
               onClick={handleSubmit}
-              className="flex-1 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-violet-700 to-amber-500 hover:from-violet-600 hover:to-amber-400 hover:scale-[1.02] active:scale-95 transition-all text-white shadow-lg shadow-violet-500/25 cursor-pointer"
+              className="flex-1 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-violet-700 to-amber-500 hover:from-violet-600 hover:to-amber-400 hover:scale-[1.02] active:scale-95 transition-all text-white shadow-lg shadow-violet-500/25 cursor-pointer text-center"
             >
               {initialData ? 'Save Changes' : 'Add Subscription'}
             </button>

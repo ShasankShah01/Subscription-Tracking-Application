@@ -57,8 +57,9 @@ export default function CustomDatePicker({
 
   // Sync view month if value prop changes externally
   useEffect(() => {
-    if (parsedValue) {
-      setViewDate(new Date(parsedValue.getFullYear(), parsedValue.getMonth(), 1));
+    const parsed = parseDateString(value);
+    if (parsed) {
+      setViewDate(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
     }
   }, [value]);
 

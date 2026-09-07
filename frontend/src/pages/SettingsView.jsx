@@ -44,6 +44,24 @@ export default function SettingsView({ user, setUser, onLogout, displayCurrency,
     localStorage.setItem(key, String(val));
   };
 
+  const handleCurrencyChange = async (newCurr) => {
+    setDisplayCurrency?.(newCurr);
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/me', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferredCurrency: newCurr }),
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setUser?.(data.user);
+      }
+    } catch (err) {
+      console.warn('Could not persist currency preference to MongoDB:', err);
+    }
+  };
+
   const handleProfileSave = async (e) => {
     e.preventDefault();
     setProfileSaving(true);
@@ -58,6 +76,9 @@ export default function SettingsView({ user, setUser, onLogout, displayCurrency,
       const data = await res.json();
       if (data.success && data.user) {
         setUser(data.user);
+        if (data.user.preferredCurrency) {
+          setDisplayCurrency?.(data.user.preferredCurrency);
+        }
         setProfileMsg({ type: 'success', text: 'Profile updated successfully!' });
       } else {
         setProfileMsg({ type: 'error', text: data.message || 'Failed to update profile.' });
@@ -199,7 +220,7 @@ export default function SettingsView({ user, setUser, onLogout, displayCurrency,
                 Override your country's default display currency.
               </p>
             </div>
-            <CurrencySelector currentCurrency={displayCurrency} onChangeCurrency={setDisplayCurrency} />
+            <CurrencySelector currentCurrency={displayCurrency} onChangeCurrency={handleCurrencyChange} />
           </div>
 
           <div className="h-px w-full bg-slate-200 dark:bg-slate-800" />

@@ -272,14 +272,14 @@ export default function AdminPage({ user }) {
     if (res.ok) fetchData();
   };
 
-  const handleSuspend = async (userId, currentlySuspended) => {
+  const handleSuspend = async (userId) => {
     const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/suspend`, { method: 'PUT', credentials: 'include' });
     const data = await res.json();
     showToast(res.ok ? `✅ ${data.message}` : data.message || 'Error');
     if (res.ok) fetchData();
   };
 
-  const handleForceReset = async (userId, email) => {
+  const handleForceReset = async (userId) => {
     const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/force-reset`, { method: 'PUT', credentials: 'include' });
     const data = await res.json();
     showToast(res.ok ? `✅ ${data.message}` : data.message || 'Error');

@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import CurrencySelector from '../components/CurrencySelector';
 import ThemeToggle from '../components/ThemeToggle';
 import FeedbackModal from '../components/FeedbackModal';
 import WelcomeModal from '../components/WelcomeModal';
-import { useTheme } from '../context/ThemeContext';
 
 export default function DashboardLayout({
   user,
@@ -14,7 +13,6 @@ export default function DashboardLayout({
   feedbackList,
   onAddFeedback,
 }) {
-  const { isDarkMode } = useTheme();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const dropdownRef = useRef(null);

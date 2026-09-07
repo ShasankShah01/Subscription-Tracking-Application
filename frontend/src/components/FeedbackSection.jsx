@@ -13,29 +13,66 @@ export default function FeedbackSection({ feedbackList = [], onAddFeedback }) {
   const [role, setRole] = useState('');
   const [rating, setRating] = useState(5);
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!message || !authorName) return;
+    if (!message.trim() || !authorName.trim()) return;
 
-    if (onAddFeedback) {
-      onAddFeedback({
-        id: Date.now(),
+    setSubmitting(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('http://localhost:5000/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: authorName.trim(),
+          role: role.trim() || 'Student User',
+          rating: Number(rating),
+          message: message.trim(),
+          tag: 'New Feedback',
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to post feedback');
+      }
+
+      const created = data.feedback || {
+        _id: Date.now(),
         name: authorName,
         role: role || 'Student User',
         rating: Number(rating),
         message: message,
-        date: 'Just now',
+        createdAt: new Date().toISOString(),
         tag: 'New Feedback',
-      });
-    }
+      };
 
-    setAuthorName('');
-    setRole('');
-    setMessage('');
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
+      if (onAddFeedback) {
+        onAddFeedback({
+          ...created,
+          id: created._id || Date.now(),
+          date: 'Just now',
+        });
+      }
+
+      setAuthorName('');
+      setRole('');
+      setMessage('');
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 5000);
+    } catch (err) {
+      console.error('Feedback submit error:', err);
+      setErrorMsg(err.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const listToDisplay = feedbackList || [];
@@ -110,6 +147,12 @@ export default function FeedbackSection({ feedbackList = [], onAddFeedback }) {
               </div>
             )}
 
+            {errorMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold animate-in fade-in">
+                {errorMsg}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
@@ -166,9 +209,20 @@ export default function FeedbackSection({ feedbackList = [], onAddFeedback }) {
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-violet-700 to-amber-500 hover:from-violet-600 hover:to-amber-400 shadow-md shadow-violet-500/20 active:scale-95 transition-all cursor-pointer"
+                disabled={submitting}
+                className="w-full py-3 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-violet-700 to-amber-500 hover:from-violet-600 hover:to-amber-400 shadow-md shadow-violet-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                Post Feedback
+                {submitting ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Posting Feedback...</span>
+                  </>
+                ) : (
+                  'Post Feedback'
+                )}
               </button>
             </form>
           </div>

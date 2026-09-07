@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import HeroSection from '../components/HeroSection';
 import IntegrationMarquee from '../components/IntegrationMarquee';
 import BentoFeatures from '../components/BentoFeatures';
@@ -9,7 +8,6 @@ import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
 
 export default function LandingPage({ feedbackList, onAddFeedback }) {
-  const navigate = useNavigate();
 
   const handleGoDashboard = () => {
     // This prop used to handle state routing. 

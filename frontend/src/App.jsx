@@ -69,8 +69,23 @@ function App() {
   const [feedbackList, setFeedbackList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Check backend session on startup
+  // Check backend session and load feedback on startup
   useEffect(() => {
+    // 1. Fetch community feedback
+    fetch('http://localhost:5000/api/feedback')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.feedbacks) {
+          setFeedbackList(data.feedbacks.map(f => ({
+            ...f,
+            id: f._id || f.id,
+            date: f.createdAt ? new Date(f.createdAt).toLocaleDateString() : 'Recent',
+          })));
+        }
+      })
+      .catch(err => console.warn('Could not fetch community feedback:', err));
+
+    // 2. Check auth session
     fetch('http://localhost:5000/api/auth/me', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {

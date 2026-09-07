@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import CustomSelect from './CustomSelect';
 import { validatePassword } from '../utils/validation';
-import { getCurrencyByCountry } from '../utils/currency';
 
 const AUTH_COUNTRY_OPTIONS = [
   { value: 'India', label: 'India (Default Currency: INR ₹)' },
@@ -74,7 +73,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-in fade-in duration-200"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="relative w-full max-w-md bg-white/95 dark:bg-zinc-950/90 border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl backdrop-blur-2xl p-6 sm:p-8 animate-in zoom-in-95 duration-200">
         

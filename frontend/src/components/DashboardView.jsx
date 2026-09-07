@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import AddSubscriptionModal from './AddSubscriptionModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 import CustomSelect from './CustomSelect';
 import { useTheme } from '../context/ThemeContext';
 
@@ -20,6 +21,7 @@ export default function DashboardView({
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
@@ -370,7 +372,8 @@ export default function DashboardView({
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
-                           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-medium">
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-medium">
                 {(filteredSubs || []).length > 0 ? (
                   (filteredSubs || []).map((sub) => {
                     if (!sub) return null;
@@ -421,8 +424,8 @@ export default function DashboardView({
                             {sub.status === 'Paused' ? 'Resume' : 'Pause'}
                           </button>
                           <button
-                            onClick={() => handleDeleteSub(sub.id, sub.name)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-500/20 transition-all"
+                            onClick={() => setDeleteTarget({ id: sub.id, name: sub.name })}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-500/20 transition-all cursor-pointer"
                           >
                             Delete
                           </button>
@@ -442,6 +445,18 @@ export default function DashboardView({
           </div>
         </div>
       </main>
+
+      <DeleteConfirmationModal
+        isOpen={Boolean(deleteTarget)}
+        serviceName={deleteTarget?.name}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDeleteSub(deleteTarget.id, deleteTarget.name);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

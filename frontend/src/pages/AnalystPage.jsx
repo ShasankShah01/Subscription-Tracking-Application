@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
@@ -30,7 +30,7 @@ const mockLogs = [
   { id: 4, time: '09:50 AM', user: 'Emma W.', action: 'Upgraded to Premium', type: 'success' },
 ];
 
-export default function AnalystPage({ user }) {
+export default function AnalystPage() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalSubscriptions: 0,

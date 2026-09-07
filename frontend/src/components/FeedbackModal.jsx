@@ -13,7 +13,9 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
   const [role, setRole] = useState('');
   const [rating, setRating] = useState(5);
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Close on Escape key
   useEffect(() => {
@@ -24,27 +26,62 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!message || !authorName) return;
+    if (!message.trim() || !authorName.trim()) return;
 
-    if (onAddFeedback) {
-      onAddFeedback({
-        id: Date.now(),
+    setSubmitting(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('http://localhost:5000/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: authorName.trim(),
+          role: role.trim() || 'App User',
+          rating: Number(rating),
+          message: message.trim(),
+          tag: 'New Feedback',
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to submit feedback');
+      }
+
+      const created = data.feedback || {
+        _id: Date.now(),
         name: authorName,
         role: role || 'App User',
         rating: Number(rating),
         message,
-        date: 'Just now',
+        createdAt: new Date().toISOString(),
         tag: 'New Feedback',
-      });
-    }
+      };
 
-    setAuthorName('');
-    setRole('');
-    setMessage('');
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
+      if (onAddFeedback) {
+        onAddFeedback({
+          ...created,
+          id: created._id || Date.now(),
+          date: 'Just now',
+        });
+      }
+
+      setAuthorName('');
+      setRole('');
+      setMessage('');
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 5000);
+    } catch (err) {
+      console.error('Feedback submit error:', err);
+      setErrorMsg(err.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const listToDisplay = feedbackList || [];
@@ -53,7 +90,7 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
     /* Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Blur + dark overlay */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
@@ -94,6 +131,12 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
             {submitted && (
               <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold animate-in fade-in">
                 ✓ Thank you! Your feedback has been posted.
+              </div>
+            )}
+
+            {errorMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-bold animate-in fade-in">
+                {errorMsg}
               </div>
             )}
 
@@ -153,9 +196,20 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-violet-700 to-amber-500 hover:from-violet-600 hover:to-amber-400 shadow-lg shadow-violet-500/25 active:scale-95 transition-all cursor-pointer"
+                disabled={submitting}
+                className="w-full py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-violet-700 to-amber-500 hover:from-violet-600 hover:to-amber-400 shadow-lg shadow-violet-500/25 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                Post Feedback
+                {submitting ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Posting Feedback...</span>
+                  </>
+                ) : (
+                  'Post Feedback'
+                )}
               </button>
             </form>
           </div>

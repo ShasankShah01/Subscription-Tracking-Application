@@ -108,6 +108,128 @@ exports.updateSubscription = async (req, res) => {
   }
 };
 
+// @desc    Get real aggregation analytics for logged in user
+// @route   GET /api/subscriptions/analytics
+exports.getAnalytics = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const mongoose = require('mongoose');
+    const userObjectId = new mongoose.Types.ObjectId(String(userId));
+
+    // 1. Overall & Status Aggregation
+    const statusAggregation = await Subscription.aggregate([
+      { $match: { user: userObjectId } },
+      {
+        $project: {
+          serviceName: 1,
+          category: 1,
+          cost: 1,
+          currency: 1,
+          billingCycle: 1,
+          status: 1,
+          nextRenewalDate: 1,
+          monthlyCost: {
+            $cond: [
+              { $eq: ['$billingCycle', 'Yearly'] },
+              { $divide: ['$cost', 12] },
+              '$cost',
+            ],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalMonthlySpend: { $sum: '$monthlyCost' },
+        },
+      },
+    ]);
+
+    // 2. Category Breakdown Aggregation (Active & Trial)
+    const categoryAggregation = await Subscription.aggregate([
+      {
+        $match: {
+          user: userObjectId,
+          status: { $in: ['Active', 'Trial', 'Upcoming'] },
+        },
+      },
+      {
+        $project: {
+          category: 1,
+          monthlyCost: {
+            $cond: [
+              { $eq: ['$billingCycle', 'Yearly'] },
+              { $divide: ['$cost', 12] },
+              '$cost',
+            ],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$category',
+          totalMonthlySpend: { $sum: '$monthlyCost' },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { totalMonthlySpend: -1 } },
+    ]);
+
+    // 3. Raw user subscriptions for frontend dynamic conversions & 6-month projection
+    const userSubscriptions = await Subscription.find({ user: userObjectId }).sort({ nextRenewalDate: 1 });
+
+    let activeMonthlySpend = 0;
+    let pausedMonthlySavings = 0;
+    let activeCount = 0;
+    let pausedCount = 0;
+    let trialCount = 0;
+
+    statusAggregation.forEach(group => {
+      if (group._id === 'Active' || group._id === 'Upcoming') {
+        activeMonthlySpend += group.totalMonthlySpend;
+        activeCount += group.count;
+      } else if (group._id === 'Trial') {
+        activeMonthlySpend += group.totalMonthlySpend;
+        trialCount += group.count;
+      } else if (group._id === 'Paused') {
+        pausedMonthlySavings += group.totalMonthlySpend;
+        pausedCount += group.count;
+      }
+    });
+
+    const projectedAnnualCost = activeMonthlySpend * 12;
+
+    const categoryBreakdown = categoryAggregation.map(cat => ({
+      name: cat._id || 'General',
+      value: Number(cat.totalMonthlySpend.toFixed(2)),
+      count: cat.count,
+    }));
+
+    res.status(200).json({
+      success: true,
+      analytics: {
+        totalMonthlySpend: Number(activeMonthlySpend.toFixed(2)),
+        projectedAnnualCost: Number(projectedAnnualCost.toFixed(2)),
+        pausedMonthlySavings: Number(pausedMonthlySavings.toFixed(2)),
+        activeCount,
+        trialCount,
+        pausedCount,
+        totalCount: userSubscriptions.length,
+        categoryBreakdown,
+        statusBreakdown: statusAggregation,
+        subscriptions: userSubscriptions,
+      },
+    });
+  } catch (error) {
+    console.error('Analytics aggregation error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error generating analytics',
+    });
+  }
+};
+
 // @desc    Delete subscription
 // @route   DELETE /api/subscriptions/:id
 exports.deleteSubscription = async (req, res) => {
@@ -130,3 +252,4 @@ exports.deleteSubscription = async (req, res) => {
     res.status(500).json({ error: error.message, message: error.message || 'Error deleting subscription' });
   }
 };
+

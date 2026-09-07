@@ -10,7 +10,8 @@ export default function WelcomeModal({ user }) {
 
   useEffect(() => {
     try {
-      const storageKey = getStorageKey();
+      const userIdentifier = user?._id || user?.id || user?.email || 'guest';
+      const storageKey = `hasSeenWelcome_${userIdentifier}`;
       const hasSeen = localStorage.getItem(storageKey);
       if (hasSeen !== 'true') {
         setIsOpen(true);
@@ -40,7 +41,7 @@ export default function WelcomeModal({ user }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300"
-      onClick={(e) => { if (e.target === e.currentTarget) handleDismiss(); }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) handleDismiss(); }}
     >
       {/* Clean Dual-Theme Modal Card */}
       <div className="bg-white dark:bg-[#050505] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full relative overflow-hidden animate-in zoom-in-95 duration-200">

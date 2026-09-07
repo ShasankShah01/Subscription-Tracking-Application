@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { convertCurrency } from '../utils/currency';
 
 export default function ExportMenu({
   subscriptions = [],
@@ -7,6 +6,7 @@ export default function ExportMenu({
   displayToast,
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [exportingType, setExportingType] = useState(null);
   const menuRef = useRef(null);
 
   // Close dropdown on outside click
@@ -21,42 +21,33 @@ export default function ExportMenu({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Format date helper (YYYY-MM-DD)
-  const formatDateForCSV = (rawDate) => {
-    if (!rawDate) return 'N/A';
+// 1. Raw CSV Export Handler
+  const handleExportCSV = async (e) => {
+    e?.stopPropagation?.();
+    setIsOpen(false);
+
+    if (!subscriptions || subscriptions.length === 0) {
+      displayToast?.('No subscriptions to export');
+      return;
+    }
+
     try {
-      if (typeof rawDate === 'string' && rawDate.includes('T')) {
-        return rawDate.split('T')[0];
+      setExportingType('csv');
+      const { exportToCSV } = await import('../utils/exportUtils');
+      const ok = exportToCSV(subscriptions, displayCurrency);
+      if (ok) {
+        displayToast?.('✓ Raw CSV exported successfully');
       }
-      const d = new Date(rawDate);
-      if (!isNaN(d.getTime())) {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      }
-      return String(rawDate).trim();
-    } catch {
-      return String(rawDate).trim();
+    } catch (err) {
+      console.error('CSV Export Error:', err);
+      displayToast?.('Failed to export CSV. Please try again.');
+    } finally {
+      setExportingType(null);
     }
   };
 
-  // Helper to trigger file download with UTF-8 BOM (prevents Excel character encoding issues)
-  const downloadCSV = (csvContent, fileName) => {
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  // 1. Standard CSV Export
-  const handleExportStandard = (e) => {
+  // 2. Financial Excel Export Handler
+  const handleExportExcel = async (e) => {
     e?.stopPropagation?.();
     setIsOpen(false);
 
@@ -65,37 +56,24 @@ export default function ExportMenu({
       return;
     }
 
-    const headers = [
-      'Subscription Name',
-      'Category',
-      'Price',
-      'Currency',
-      'Billing Cycle',
-      'Next Renewal Date',
-      'Status',
-    ];
-
-    const rows = subscriptions.map((sub) => {
-      const priceStr = String(sub?.price || '0');
-      const numericPrice = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
-      const cleanName = `"${String(sub?.name || 'Untitled').replace(/"/g, '""')}"`;
-      const cleanCategory = `"${String(sub?.category || 'General').replace(/"/g, '""')}"`;
-      const currencyCode = `"${String(sub?.currency || 'USD').replace(/"/g, '""')}"`;
-      const billingCycle = `"${String(sub?.cycle || sub?.billingCycle || 'Monthly').replace(/"/g, '""')}"`;
-      const renewalDate = `"${formatDateForCSV(sub?.renewal || sub?.nextRenewalDate)}"`;
-      const status = `"${String(sub?.status || 'Active').replace(/"/g, '""')}"`;
-
-      return [cleanName, cleanCategory, numericPrice.toFixed(2), currencyCode, billingCycle, renewalDate, status].join(',');
-    });
-
-    const csvContent = [headers.join(','), ...rows].join('\r\n');
-    const timestamp = new Date().toISOString().split('T')[0];
-    downloadCSV(csvContent, `subscriptions_standard_${timestamp}.csv`);
-    displayToast?.('✓ Standard CSV exported successfully');
+    try {
+      setExportingType('excel');
+      displayToast?.('Generating financial Excel report...');
+      const { exportToExcel } = await import('../utils/exportUtils');
+      const ok = await exportToExcel(subscriptions, displayCurrency);
+      if (ok) {
+        displayToast?.('✓ Financial Excel report exported successfully');
+      }
+    } catch (err) {
+      console.error('Excel Export Error:', err);
+      displayToast?.('Failed to export Excel. Please try again.');
+    } finally {
+      setExportingType(null);
+    }
   };
 
-  // 2. Summary Report CSV Export
-  const handleExportSummary = (e) => {
+  // 3. Visual PDF Export Handler
+  const handleExportPDF = async (e) => {
     e?.stopPropagation?.();
     setIsOpen(false);
 
@@ -104,58 +82,20 @@ export default function ExportMenu({
       return;
     }
 
-    const activeSubs = subscriptions.filter((s) => s && s.status === 'Active');
-    const pausedSubs = subscriptions.filter((s) => s && s.status === 'Paused');
-    const trialSubs = subscriptions.filter((s) => s && s.status === 'Trial');
-
-    // Calculate total spend converted to current display currency
-    const totalSpendInUSD = activeSubs.reduce((acc, sub) => {
-      const priceStr = String(sub?.price || '0');
-      const rawVal = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
-      const subCurr = sub?.currency || 'USD';
-      const valInUSD = convertCurrency(rawVal, subCurr, 'USD');
-      return acc + (sub?.cycle === 'Yearly' || sub?.billingCycle === 'Yearly' ? valInUSD / 12 : valInUSD);
-    }, 0);
-
-    const convertedTotal = convertCurrency(totalSpendInUSD, 'USD', displayCurrency);
-
-    const headers = [
-      'Subscription Name',
-      'Category',
-      'Price',
-      'Currency',
-      'Billing Cycle',
-      'Next Renewal Date',
-      'Status',
-    ];
-
-    const dataRows = subscriptions.map((sub) => {
-      const priceStr = String(sub?.price || '0');
-      const numericPrice = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
-      const cleanName = `"${String(sub?.name || 'Untitled').replace(/"/g, '""')}"`;
-      const cleanCategory = `"${String(sub?.category || 'General').replace(/"/g, '""')}"`;
-      const currencyCode = `"${String(sub?.currency || 'USD').replace(/"/g, '""')}"`;
-      const billingCycle = `"${String(sub?.cycle || sub?.billingCycle || 'Monthly').replace(/"/g, '""')}"`;
-      const renewalDate = `"${formatDateForCSV(sub?.renewal || sub?.nextRenewalDate)}"`;
-      const status = `"${String(sub?.status || 'Active').replace(/"/g, '""')}"`;
-
-      return [cleanName, cleanCategory, numericPrice.toFixed(2), currencyCode, billingCycle, renewalDate, status].join(',');
-    });
-
-    const summarySection = [
-      '',
-      '"--- SUMMARY REPORT ---"',
-      `"Total Active Subscriptions",${activeSubs.length}`,
-      `"Total Paused Subscriptions",${pausedSubs.length}`,
-      `"Total Trial Subscriptions",${trialSubs.length}`,
-      `"Total Monthly Spend (${displayCurrency})",${convertedTotal.toFixed(2)},"${displayCurrency}"`,
-      `"Report Generated",${formatDateForCSV(new Date())}`,
-    ];
-
-    const csvContent = [headers.join(','), ...dataRows, ...summarySection].join('\r\n');
-    const timestamp = new Date().toISOString().split('T')[0];
-    downloadCSV(csvContent, `subscriptions_summary_report_${timestamp}.csv`);
-    displayToast?.('✓ Summary Report CSV exported successfully');
+    try {
+      setExportingType('pdf');
+      displayToast?.('Rendering visual PDF summary...');
+      const { exportToPDF } = await import('../utils/exportUtils');
+      const ok = exportToPDF(subscriptions, displayCurrency);
+      if (ok) {
+        displayToast?.('✓ Visual PDF summary exported successfully');
+      }
+    } catch (err) {
+      console.error('PDF Export Error:', err);
+      displayToast?.('Failed to export PDF. Please try again.');
+    } finally {
+      setExportingType(null);
+    }
   };
 
   return (
@@ -169,12 +109,20 @@ export default function ExportMenu({
         }}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        className="px-4 py-2 rounded-xl font-bold text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer select-none active:scale-95"
+        disabled={Boolean(exportingType)}
+        className="px-4 py-2 rounded-xl font-bold text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer select-none active:scale-95 disabled:opacity-60"
       >
-        <svg className="w-4 h-4 text-violet-600 dark:text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-        <span>Export Data</span>
+        {exportingType ? (
+          <svg className="w-4 h-4 text-violet-600 dark:text-amber-400 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4 text-violet-600 dark:text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        )}
+        <span>{exportingType ? 'Exporting...' : 'Export Data'}</span>
         <svg
           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-violet-600 dark:text-amber-400' : ''}`}
           fill="none"
@@ -187,36 +135,53 @@ export default function ExportMenu({
 
       {/* Popover Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl bg-white dark:bg-zinc-950/95 border border-slate-200 dark:border-white/10 shadow-2xl backdrop-blur-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white dark:bg-zinc-950/95 border border-slate-200 dark:border-white/10 shadow-2xl backdrop-blur-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
           <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Export Options
           </div>
 
+          {/* 1. CSV */}
           <button
             type="button"
-            onClick={handleExportStandard}
+            onClick={handleExportCSV}
             className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:bg-violet-50 dark:hover:bg-violet-600/20 hover:text-violet-700 dark:hover:text-violet-300 transition-colors cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0 font-mono text-[10px] font-bold">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0 font-mono text-[10px] font-bold">
               CSV
             </div>
             <div>
-              <span className="block font-bold">Export as CSV (Standard)</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-normal">Clean list of active & paused subscriptions</span>
+              <span className="block font-bold">Export CSV (Raw Data)</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-normal">Clean comma-separated values</span>
             </div>
           </button>
 
+          {/* 2. Excel */}
           <button
             type="button"
-            onClick={handleExportSummary}
-            className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-500/20 hover:text-amber-700 dark:hover:text-amber-300 transition-colors cursor-pointer mt-0.5"
+            onClick={handleExportExcel}
+            className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-500/20 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer mt-1"
           >
-            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 font-mono text-[10px] font-bold">
-              Σ
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 font-mono text-[10px] font-bold">
+              XLSX
             </div>
             <div>
-              <span className="block font-bold">Export as CSV (Summary Report)</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-normal">Includes calculated spend & status totals</span>
+              <span className="block font-bold">Export Excel (Financial Report)</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-normal">Formatted accounting sheet with formulas</span>
+            </div>
+          </button>
+
+          {/* 3. PDF */}
+          <button
+            type="button"
+            onClick={handleExportPDF}
+            className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-500/20 hover:text-rose-700 dark:hover:text-rose-300 transition-colors cursor-pointer mt-1"
+          >
+            <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 font-mono text-[10px] font-bold">
+              PDF
+            </div>
+            <div>
+              <span className="block font-bold">Export PDF (Visual Summary)</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-normal">Clean summary overview with spend metrics</span>
             </div>
           </button>
         </div>
