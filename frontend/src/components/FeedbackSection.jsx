@@ -341,9 +341,9 @@ export default function FeedbackSection({ feedbackList = [], onAddFeedback, user
 
           {/* Right Column: Live Board (7 cols) */}
           <div className="lg:col-span-7 space-y-4">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center justify-between">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
               <span>Community Feedback Stream</span>
-              <span className="text-xs text-cyan-400 font-mono font-normal">Live Updates</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-normal">Live Updates</span>
             </h3>
 
             {listToDisplay.length > 0 ? (
@@ -387,16 +387,16 @@ export default function FeedbackSection({ feedbackList = [], onAddFeedback, user
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center text-center p-12 rounded-3xl bg-slate-900/40 border border-dashed border-slate-800 backdrop-blur-xl min-h-[300px]">
-                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-slate-50 dark:bg-zinc-900/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 p-8 flex flex-col items-center justify-center min-h-[300px] text-center">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center mb-3">
+                  <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h4 className="text-base font-bold text-white mb-1">
+                <h4 className="text-base font-medium text-slate-600 dark:text-slate-300 mb-1">
                   No feedback yet
                 </h4>
-                <p className="text-sm font-medium text-slate-400 max-w-sm">
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
                   Currently no feedback. Be the first to share your thoughts!
                 </p>
               </div>
