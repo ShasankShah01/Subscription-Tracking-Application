@@ -1,16 +1,67 @@
 const Feedback = require('../models/Feedback');
+const BadWords = require('bad-words');
+
+// Initialize BadWords filter instance
+const FilterClass = BadWords.Filter || BadWords;
+const filter = new FilterClass();
+
+// Custom array of modern / Gen Z slang, bypasses, toxic terms, and evasion patterns
+const modernToxicityWords = [
+  'gyatt',
+  'rizzler',
+  'skibidi',
+  'kys',
+  'killyourself',
+  'stfu',
+  'fck',
+  'f*ck',
+  'fu*k',
+  'b!tch',
+  'btch',
+  'sh!t',
+  'sh1t',
+  'a$$',
+  'a$$hole',
+  'asshole',
+  'bitch',
+  'fuck',
+  'shit',
+  'dick',
+  'cunt',
+  'dumbass',
+  'dipshit',
+  'jackass',
+  'retard',
+  'trashapp',
+  'garbageapp',
+  'scam',
+  'scammer',
+  'fraud',
+];
+filter.addWords(...modernToxicityWords);
+
+// Safe cleaning helper to handle strings gracefully
+const sanitizeText = (text) => {
+  if (!text || typeof text !== 'string') return '';
+  try {
+    return filter.clean(text.trim());
+  } catch (err) {
+    return text.trim();
+  }
+};
 
 // @desc    Submit new feedback
 // @route   POST /api/feedback
 exports.createFeedback = async (req, res) => {
   try {
-    const { name, role, rating, message, tag } = req.body;
+    const { name, role, rating, message, feedback: feedbackField, tag } = req.body;
+    const rawFeedback = message || feedbackField;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: 'Name is required' });
     }
 
-    if (!message || !message.trim()) {
+    if (!rawFeedback || !rawFeedback.trim()) {
       return res.status(400).json({ success: false, message: 'Feedback message is required' });
     }
 
@@ -19,12 +70,18 @@ exports.createFeedback = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Rating must be between 1 and 5' });
     }
 
+    // Phase 3: Sanitize name and feedback message before saving to MongoDB
+    const sanitizedName = sanitizeText(name);
+    const sanitizedFeedback = sanitizeText(rawFeedback);
+    const sanitizedRole = role && role.trim() ? sanitizeText(role) : 'App User';
+    const sanitizedTag = tag && tag.trim() ? sanitizeText(tag) : 'Community Feedback';
+
     const feedback = new Feedback({
-      name: name.trim(),
-      role: role && role.trim() ? role.trim() : 'App User',
+      name: sanitizedName,
+      role: sanitizedRole,
       rating: numericRating,
-      message: message.trim(),
-      tag: tag && tag.trim() ? tag.trim() : 'Community Feedback',
+      message: sanitizedFeedback,
+      tag: sanitizedTag,
       user: req.user?._id || req.user?.id || null,
     });
 

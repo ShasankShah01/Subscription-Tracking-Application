@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CustomSelect from './CustomSelect';
+import { useAuth } from '../context/AuthContext';
 
 const RATING_OPTIONS = [
   { value: 5, label: '⭐⭐⭐⭐⭐ Excellent (5/5)' },
@@ -8,14 +9,28 @@ const RATING_OPTIONS = [
   { value: 2, label: '⭐⭐ Needs Improvement (2/5)' },
 ];
 
-export default function FeedbackSection({ feedbackList = [], onAddFeedback }) {
-  const [authorName, setAuthorName] = useState('');
-  const [role, setRole] = useState('');
+export default function FeedbackSection({ feedbackList = [], onAddFeedback, user: propUser }) {
+  const auth = useAuth();
+  const currentUser = propUser || auth?.user;
+
+  // Auto-fill logged in user's name or email, while keeping it fully editable
+  const [authorName, setAuthorName] = useState(() => currentUser?.name || currentUser?.email || '');
+  const [role, setRole] = useState(() => currentUser?.role || '');
   const [rating, setRating] = useState(5);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Auto-fill when authenticated user state loads, unless modified
+  useEffect(() => {
+    if (currentUser?.name || currentUser?.email) {
+      setAuthorName(prev => (prev ? prev : (currentUser.name || currentUser.email)));
+      if (currentUser.role) {
+        setRole(prev => (prev ? prev : currentUser.role));
+      }
+    }
+  }, [currentUser]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,8 +77,8 @@ export default function FeedbackSection({ feedbackList = [], onAddFeedback }) {
         });
       }
 
-      setAuthorName('');
-      setRole('');
+      setAuthorName(currentUser?.name || currentUser?.email || '');
+      setRole(currentUser?.role || '');
       setMessage('');
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 5000);

@@ -54,6 +54,7 @@ export default function DashboardLayout({
         onClose={() => setIsFeedbackOpen(false)}
         feedbackList={feedbackList}
         onAddFeedback={onAddFeedback}
+        user={user}
       />
 
       {/* Sidebar — receives feedback click handler */}

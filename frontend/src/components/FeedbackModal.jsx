@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CustomSelect from './CustomSelect';
+import { useAuth } from '../context/AuthContext';
 
 const RATING_OPTIONS = [
   { value: 5, label: '⭐⭐⭐⭐⭐ Excellent (5/5)' },
@@ -8,14 +9,34 @@ const RATING_OPTIONS = [
   { value: 2, label: '⭐⭐ Needs Improvement (2/5)' },
 ];
 
-export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAddFeedback }) {
-  const [authorName, setAuthorName] = useState('');
-  const [role, setRole] = useState('');
+export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAddFeedback, user: propUser }) {
+  const auth = useAuth();
+  const currentUser = propUser || auth?.user;
+
+  // Auto-fill logged in user's name or email, while keeping it fully editable
+  const [authorName, setAuthorName] = useState(() => currentUser?.name || currentUser?.email || '');
+  const [role, setRole] = useState(() => currentUser?.role || '');
   const [rating, setRating] = useState(5);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Auto-fill from authenticated user state on load or when modal opens, unless modified
+  useEffect(() => {
+    if (currentUser?.name || currentUser?.email) {
+      setAuthorName(prev => (prev ? prev : (currentUser.name || currentUser.email)));
+      if (currentUser.role) {
+        setRole(prev => (prev ? prev : currentUser.role));
+      }
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (isOpen && !authorName && (currentUser?.name || currentUser?.email)) {
+      setAuthorName(currentUser.name || currentUser.email);
+    }
+  }, [isOpen, currentUser]);
 
   // Close on Escape key
   useEffect(() => {
@@ -71,8 +92,8 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
         });
       }
 
-      setAuthorName('');
-      setRole('');
+      setAuthorName(currentUser?.name || currentUser?.email || '');
+      setRole(currentUser?.role || '');
       setMessage('');
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 5000);

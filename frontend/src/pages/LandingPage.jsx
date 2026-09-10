@@ -7,7 +7,7 @@ import FeedbackSection from '../components/FeedbackSection';
 import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
 
-export default function LandingPage({ feedbackList, onAddFeedback }) {
+export default function LandingPage({ feedbackList, onAddFeedback, user }) {
 
   const handleGoDashboard = () => {
     // This prop used to handle state routing. 
@@ -43,7 +43,7 @@ export default function LandingPage({ feedbackList, onAddFeedback }) {
         <SavingsCalculator onDashboardClick={handleGoDashboard} />
 
         {/* Community & Project Feedback Section */}
-        <FeedbackSection feedbackList={feedbackList} onAddFeedback={onAddFeedback} />
+        <FeedbackSection feedbackList={feedbackList} onAddFeedback={onAddFeedback} user={user} />
 
         {/* Bottom CTA Banner */}
         <CTASection onDashboardClick={handleGoDashboard} />

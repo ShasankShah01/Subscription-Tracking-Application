@@ -10,6 +10,7 @@ import ToastNotification from './components/ToastNotification';
 import ErrorBoundary  from './components/ErrorBoundary';
 import { getCurrencyByCountry } from './utils/currency';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
 import { apiFetch }   from './utils/api';
 
 // ── Lazy imports — loaded only after authentication ──────────────────────────
@@ -172,7 +173,8 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <BrowserRouter>
+        <AuthProvider user={user} setUser={setUser} handleLoginSuccess={handleLoginSuccess} handleLogout={handleLogout}>
+          <BrowserRouter>
           {/* Toast Notification */}
           {showToast && (
             <ToastNotification message={toastMessage} onClose={() => setShowToast(false)} />
@@ -204,6 +206,7 @@ function App() {
                         onGoDashboard={() => setIsAuthModalOpen(true)}
                       />
                       <LandingPage
+                        user={user}
                         feedbackList={feedbackList}
                         onAddFeedback={handleAddFeedback}
                       />
@@ -289,7 +292,8 @@ function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
+          </BrowserRouter>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
