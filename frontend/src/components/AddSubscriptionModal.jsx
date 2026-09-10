@@ -78,7 +78,7 @@ export default function AddSubscriptionModal({
   const cycleDropdownRef = useRef(null);
   const statusDropdownRef = useRef(null);
 
-  // Close any open custom dropdown when clicking outside
+  // Close any open custom dropdown when clicking outside or pressing Escape
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (currencyDropdownRef.current && !currencyDropdownRef.current.contains(e.target)) {
@@ -94,8 +94,20 @@ export default function AddSubscriptionModal({
         setIsStatusOpen(false);
       }
     };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsCurrencyOpen(false);
+        setIsCategoryOpen(false);
+        setIsCycleOpen(false);
+        setIsStatusOpen(false);
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   useEffect(() => {
@@ -364,7 +376,7 @@ export default function AddSubscriptionModal({
 
               {/* Custom Category Dropdown Menu */}
               {isCategoryOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-full max-h-56 overflow-y-auto rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-50 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute left-0 top-full mt-1.5 w-full max-h-56 overflow-y-auto rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-40 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                   {STANDARD_CATEGORIES.map((cat) => {
                     const isSelected = category === cat;
                     return (
@@ -466,7 +478,7 @@ export default function AddSubscriptionModal({
 
                   {/* Dropdown Menu — top 20 currencies, max-h-48 with custom scroll */}
                   {isCurrencyOpen && (
-                    <div className="absolute left-0 top-full mt-1.5 w-48 max-h-48 overflow-y-auto rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-50 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="absolute left-0 top-full mt-1.5 w-48 max-h-48 overflow-y-auto rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-40 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                       {TOP_20_CURRENCIES.map((c) => {
                         const isSelected = c.code === currency;
                         return (
@@ -539,7 +551,7 @@ export default function AddSubscriptionModal({
 
               {/* Billing Cycle Menu */}
               {isCycleOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-full rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-50 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute left-0 top-full mt-1.5 w-full rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-40 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                   {BILLING_CYCLES.map((c) => {
                     const isSelected = cycle === c;
                     return (
@@ -599,7 +611,7 @@ export default function AddSubscriptionModal({
 
               {/* Status Menu */}
               {isStatusOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-full rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-50 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute left-0 top-full mt-1.5 w-full rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-40 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                   {STATUS_OPTIONS.map((st) => {
                     const isSelected = status === st.value;
                     return (

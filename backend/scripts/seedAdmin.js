@@ -2,7 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
 /**
- * Seeds the Master Admin account (shasankshah.25.mca@iite.indusuni.ac.in).
+ * Seeds the Master Admin account using environment variables.
  * Also seeds a dev fallback admin (admin@starttracker.com) when running on
  * the in-memory database, so developers are never locked out.
  *
@@ -10,31 +10,44 @@ const bcrypt = require('bcryptjs');
  */
 const seedAdmin = async ({ usingFallback = false } = {}) => {
   // --- Seed 1: Master Admin ---
-  try {
-    const masterEmail = 'shasankshah.25.mca@iite.indusuni.ac.in';
-    const existingMaster = await User.findOne({
-      $or: [{ email: masterEmail }, { name: 'Shasank Shah' }],
-    });
+  // Read credentials from environment — silently skip if not configured.
+  // This prevents errors when team members run the project without setting
+  // the MASTER_ADMIN_EMAIL env var in their local .env file.
+  const masterEmail    = process.env.MASTER_ADMIN_EMAIL;
+  const masterPassword = process.env.MASTER_ADMIN_PASSWORD;
 
-    if (existingMaster) {
-      console.log(`[Seed] Master Admin already exists: ${existingMaster.email} (Role: ${existingMaster.role})`);
-    } else {
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('Sh@$ank0110', salt);
-
-      const adminUser = await User.create({
-        name: 'Shasank Shah',
-        email: masterEmail,
-        password: hashedPassword,
-        country: 'India',
-        preferredCurrency: 'INR',
-        role: 'Admin',
+  if (!masterEmail) {
+    console.log('[Seed] ⏭  MASTER_ADMIN_EMAIL not set — skipping master admin seed.');
+  } else {
+    try {
+      const existingMaster = await User.findOne({
+        $or: [{ email: masterEmail }, { name: 'Shasank Shah' }],
       });
 
-      console.log(`[Seed] ✅ Master Admin seeded: "${adminUser.name}" <${adminUser.email}> [${adminUser.role}]`);
+      if (existingMaster) {
+        console.log(`[Seed] Master Admin already exists: ${existingMaster.email} (Role: ${existingMaster.role})`);
+      } else {
+        if (!masterPassword) {
+          console.warn('[Seed] ⚠️  MASTER_ADMIN_PASSWORD not set — skipping master admin creation.');
+        } else {
+          const salt = await bcrypt.genSalt(10);
+          const hashedPassword = await bcrypt.hash(masterPassword, salt);
+
+          const adminUser = await User.create({
+            name: 'Shasank Shah',
+            email: masterEmail,
+            password: hashedPassword,
+            country: 'India',
+            preferredCurrency: 'INR',
+            role: 'Admin',
+          });
+
+          console.log(`[Seed] ✅ Master Admin seeded: "${adminUser.name}" <${adminUser.email}> [${adminUser.role}]`);
+        }
+      }
+    } catch (error) {
+      console.error('[Seed] ❌ Master Admin seeding error:', error.message);
     }
-  } catch (error) {
-    console.error('[Seed] ❌ Master Admin seeding error:', error.message);
   }
 
   // --- Seed 2: Dev Fallback Admin (only when using in-memory DB) ---

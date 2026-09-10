@@ -247,7 +247,7 @@ export default function CustomDatePicker({
       {/* Popover Shell: Drop-Up Popover to prevent viewport collision */}
       {isOpen && (
         <div
-          className="absolute bottom-full left-0 mb-2 z-50 p-4 w-72 sm:w-80 rounded-2xl bg-white/95 dark:bg-[#050505] border border-slate-200 dark:border-[#F7E7CE]/20 shadow-[0_0_30px_rgba(247,231,206,0.05)] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150 select-none"
+          className="absolute bottom-full left-0 mb-2 z-40 p-4 w-72 sm:w-80 rounded-2xl bg-white/95 dark:bg-[#050505] border border-slate-200 dark:border-[#F7E7CE]/20 shadow-[0_0_30px_rgba(247,231,206,0.05)] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150 select-none"
           role="dialog"
           aria-modal="true"
         >

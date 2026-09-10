@@ -9,7 +9,7 @@ export default function ExportMenu({
   const [exportingType, setExportingType] = useState(null);
   const menuRef = useRef(null);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click or Escape key
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (e) => {
@@ -17,8 +17,17 @@ export default function ExportMenu({
         setIsOpen(false);
       }
     };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen]);
 
 // 1. Raw CSV Export Handler
@@ -135,7 +144,7 @@ export default function ExportMenu({
 
       {/* Popover Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white dark:bg-zinc-950/95 border border-slate-200 dark:border-white/10 shadow-2xl backdrop-blur-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white dark:bg-zinc-950/95 border border-slate-200 dark:border-white/10 shadow-2xl backdrop-blur-2xl p-1.5 z-40 animate-in fade-in zoom-in-95 duration-150">
           <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Export Options
           </div>

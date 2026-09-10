@@ -2,14 +2,15 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // ── Eager imports — on the critical rendering path ───────────────────────────
-import LandingPage from './pages/LandingPage';
-import Navbar from './components/Navbar';
-import AuthModal from './components/AuthModal';
+import LandingPage    from './pages/LandingPage';
+import NotFoundPage   from './pages/NotFoundPage';
+import Navbar         from './components/Navbar';
+import AuthModal      from './components/AuthModal';
 import ToastNotification from './components/ToastNotification';
-import ErrorBoundary from './components/ErrorBoundary';
+import ErrorBoundary  from './components/ErrorBoundary';
 import { getCurrencyByCountry } from './utils/currency';
 import { ThemeProvider } from './context/ThemeContext';
-import { apiFetch } from './utils/api';
+import { apiFetch }   from './utils/api';
 
 // ── Lazy imports — loaded only after authentication ──────────────────────────
 const DashboardPage   = lazy(() => import('./pages/DashboardPage'));
@@ -284,8 +285,8 @@ function App() {
                 <Route index element={<AnalystPage user={user} />} />
               </Route>
 
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* 404 — catch-all for any unmatched route */}
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </BrowserRouter>

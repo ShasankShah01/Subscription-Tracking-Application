@@ -22,8 +22,10 @@ const protect = async (req, res, next) => {
     }
     next();
   } catch (error) {
-    console.error('JWT Verification error:', error.message);
-    return res.status(401).json({ message: 'Not authorized, invalid token' });
+    // A malformed or expired token is a normal client-side event, not a server
+    // error — so we clear the stale cookie silently and return a clean 401.
+    res.clearCookie('token');
+    return res.status(401).json({ message: 'Session expired. Please log in again.' });
   }
 };
 

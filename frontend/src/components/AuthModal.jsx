@@ -21,6 +21,15 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Close modal on Escape
+  React.useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const passwordEval = validatePassword(password, email);
@@ -168,7 +177,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           </div>
 
           {tab === 'signup' && (
-            <div>
+            <div className="relative">
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Country (Auto-Currency Config)
               </label>

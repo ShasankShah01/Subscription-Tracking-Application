@@ -1,0 +1,4 @@
+# robots.txt for STArt — Subscription Tracking Application
+User-agent: *
+Allow: /
+

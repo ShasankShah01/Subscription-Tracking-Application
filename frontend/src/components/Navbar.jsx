@@ -21,8 +21,17 @@ export default function Navbar({
         setIsDropdownOpen(false);
       }
     }
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false);
+      }
+    }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   useEffect(() => {
@@ -35,7 +44,7 @@ export default function Navbar({
 
   return (
     <header
-      className={`sticky top-0 z-40 transition-all duration-300 ${
+      className={`sticky top-0 z-30 transition-all duration-300 ${
         scrolled
           ? 'bg-slate-950/90 backdrop-blur-xl border-b border-slate-800 shadow-2xl'
           : 'bg-slate-950/60 backdrop-blur-md border-b border-slate-800/60'
@@ -130,7 +139,7 @@ export default function Navbar({
               
               {/* Dropdown Menu */}
               {isDropdownOpen && (
-                <div className="absolute right-0 top-12 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                <div className="absolute right-0 top-12 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-2 z-40 animate-in fade-in slide-in-from-top-2">
                   <button 
                     onClick={() => { toggleTheme(); setIsDropdownOpen(false); }}
                     className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex justify-between items-center"

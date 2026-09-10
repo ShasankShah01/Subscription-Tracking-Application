@@ -18,15 +18,24 @@ export default function DashboardLayout({
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  // Close profile dropdown on outside click
+  // Close profile dropdown on outside click or Escape
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
     }
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false);
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const handleLogoutClick = () => {
@@ -56,7 +65,7 @@ export default function DashboardLayout({
         <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-gold-400/5 dark:bg-gold-500/6 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Dashboard Top Header — glassmorphism */}
-        <header className="sticky top-0 z-40 bg-white/70 dark:bg-[#0B1120]/80 border-b border-slate-200 dark:border-white/5 backdrop-blur-xl shrink-0 shadow-sm dark:shadow-none">
+        <header className="sticky top-0 z-30 bg-white/70 dark:bg-[#0B1120]/80 border-b border-slate-200 dark:border-white/5 backdrop-blur-xl shrink-0 shadow-sm dark:shadow-none">
           <div className="px-8 h-20 flex items-center justify-between">
             <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
               {user?.role === 'Admin'
@@ -98,7 +107,7 @@ export default function DashboardLayout({
 
                 {/* Dropdown Menu — strictly Profile Settings and Logout */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 top-12 mt-2 w-48 bg-white dark:bg-zinc-950/95 border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl dark:shadow-2xl py-1.5 z-50 animate-in fade-in slide-in-from-top-2 backdrop-blur-xl">
+                  <div className="absolute right-0 top-12 mt-2 w-48 bg-white dark:bg-zinc-950/95 border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl dark:shadow-2xl py-1.5 z-40 animate-in fade-in slide-in-from-top-2 backdrop-blur-xl">
                     <button
                       onClick={() => { setIsDropdownOpen(false); navigate('/dashboard/settings'); }}
                       className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-amber-500 dark:hover:text-[#F7E7CE] transition-colors flex items-center gap-2 cursor-pointer font-medium"

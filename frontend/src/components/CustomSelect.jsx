@@ -149,7 +149,7 @@ export default function CustomSelect({
         <div
           role="listbox"
           aria-labelledby={triggerId}
-          className={`absolute left-0 top-full mt-1.5 w-full min-w-[160px] ${maxHeight} overflow-y-auto rounded-2xl z-50 p-1.5 space-y-0.5
+          className={`absolute left-0 top-full mt-1.5 w-full min-w-[160px] ${maxHeight} overflow-y-auto rounded-2xl z-40 p-1.5 space-y-0.5
             bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border border-slate-200 dark:border-[#F7E7CE]/20
             shadow-xl dark:shadow-[0_10px_40px_rgba(0,0,0,0.7)]
             animate-in fade-in zoom-in-95 duration-150

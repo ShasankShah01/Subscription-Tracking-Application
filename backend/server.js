@@ -1,5 +1,8 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
@@ -14,17 +17,42 @@ const feedbackRoutes = require('./routes/feedbackRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS configuration for HttpOnly cookie credential transport
+// ── Security: Secure HTTP headers (XSS, clickjacking, MIME sniffing, etc.) ──
+app.use(helmet());
+
+// ── Security: Strict CORS – only allow known frontend origins ────────────────
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  ...(process.env.PROD_CLIENT_URL ? [process.env.PROD_CLIENT_URL] : []),
+];
 app.use(cors({
-  origin: process.env.CLIENT_URL || true,
+  origin: (origin, callback) => {
+    // Allow server-to-server / same-origin requests (origin is undefined)
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS policy: origin '${origin}' is not allowed.`));
+  },
   credentials: true,
 }));
+
+// ── Security: NoSQL injection sanitisation ───────────────────────────────────
+app.use(mongoSanitize());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Mount API Routes
+// ── Rate Limiting: 100 requests per 15 minutes per IP on all API routes ──────
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  standardHeaders: true,  // Return rate-limit info in RateLimit-* headers
+  legacyHeaders: false,   // Disable X-RateLimit-* headers
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes.' },
+});
+
+// Mount API Routes (rate limiter applied at prefix level)
+app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);

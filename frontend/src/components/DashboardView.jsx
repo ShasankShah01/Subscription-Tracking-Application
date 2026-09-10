@@ -170,7 +170,7 @@ export default function DashboardView({
       />
 
       {/* Dashboard Top Workspace Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button

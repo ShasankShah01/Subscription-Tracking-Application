@@ -407,7 +407,7 @@ export default function DashboardPage({
       </div>
 
       {/* Subscriptions Table / Empty State Container */}
-      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl overflow-hidden shadow-2xl">
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl overflow-visible relative z-10 shadow-2xl">
         
         {/* Table Control Bar */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -478,7 +478,7 @@ export default function DashboardPage({
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-b-3xl">
             <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
               <thead className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 transition-colors">
                 <tr>

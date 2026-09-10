@@ -89,15 +89,15 @@ export const exportToExcel = async (subscriptions = [], displayCurrency = 'USD')
     views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }],
   });
 
-  // Strict Typed Columns Definition with generous column widths (at least 20, 25 for name)
+  // ── Phase 2: Column Sizing & Readability (at least 20-25 characters wide) ─
   worksheet.columns = [
-    { header: 'Subscription Name', key: 'name', width: 25 },
-    { header: 'Category', key: 'category', width: 20 },
-    { header: 'Billing Cycle', key: 'cycle', width: 20 },
+    { header: 'Subscription Name', key: 'name', width: 28 },
+    { header: 'Category', key: 'category', width: 22 },
+    { header: 'Billing Cycle', key: 'cycle', width: 18 },
     { header: 'Next Renewal Date', key: 'renewal', width: 20 },
-    { header: 'Price', key: 'price', width: 20 },
-    { header: 'Currency', key: 'currency', width: 20 },
-    { header: 'Status', key: 'status', width: 20 },
+    { header: 'Price', key: 'price', width: 18 },
+    { header: 'Currency', key: 'currency', width: 15 },
+    { header: 'Status', key: 'status', width: 16 },
   ];
 
   // Header Styling: Professional Indigo with bold white text
@@ -120,14 +120,13 @@ export const exportToExcel = async (subscriptions = [], displayCurrency = 'USD')
     };
   });
 
-  // Currency Accounting Format
-  const symbol = CURRENCY_SYMBOLS[displayCurrency] || '$';
-  const currencyNumFmt = `"${symbol}"#,##0.00`;
+  // Standard Financial Number Format (pure numeric, no currency symbol in price cell)
+  const numberFormat = '#,##0.00';
 
-  // Populate data rows
+  // ── Phase 1: Populate data rows with pure Number values ───────────────────
   subscriptions.forEach((sub, index) => {
-    const priceStr = String(sub?.price || '0');
-    const numericPrice = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
+    const rawPrice = parseFloat(String(sub?.price ?? sub?.cost ?? '0').replace(/[^0-9.]/g, '')) || 0;
+    const numericPrice = Number(rawPrice.toFixed(2));
     const renewalDate = parseValidDate(sub?.renewal || sub?.nextRenewalDate);
 
     const row = worksheet.addRow({
@@ -162,10 +161,13 @@ export const exportToExcel = async (subscriptions = [], displayCurrency = 'USD')
       renewalCell.alignment = { vertical: 'middle', horizontal: 'center' };
     }
 
+    // Price cell: pure Number data type with financial number formatting
     const priceCell = row.getCell(5);
-    priceCell.numFmt = currencyNumFmt;
+    priceCell.value = numericPrice;
+    priceCell.numFmt = numberFormat;
     priceCell.alignment = { vertical: 'middle', horizontal: 'right' };
 
+    // Dedicated Currency column ensures Price remains mathematically usable
     const currencyCell = row.getCell(6);
     currencyCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
@@ -192,11 +194,26 @@ export const exportToExcel = async (subscriptions = [], displayCurrency = 'USD')
     });
   });
 
-  // Total Row: Bold styling + top border + double bottom border to separate clearly from data
-  const totalRowIndex = subscriptions.length + 2;
+  // ── Phase 3: Summary Row (TOTAL MONTHLY SPEND) ───────────────────────────
+  // Calculate the total of all active subscriptions (normalized to monthly spend in displayCurrency)
+  const activeSubs = subscriptions.filter((s) => s && s.status === 'Active');
+  const totalMonthlySpend = activeSubs.reduce((acc, sub) => {
+    const raw = parseFloat(String(sub?.price ?? sub?.cost ?? '0').replace(/[^0-9.]/g, '')) || 0;
+    const subCurrency = sub?.currency || displayCurrency;
+    const valInDisplay = convertCurrency(raw, subCurrency, displayCurrency);
+    const isYearly = (sub?.cycle || sub?.billingCycle) === 'Yearly';
+    return acc + (isYearly ? valInDisplay / 12 : valInDisplay);
+  }, 0);
+  const roundedTotal = Number(totalMonthlySpend.toFixed(2));
+
   const totalRow = worksheet.addRow({
-    name: 'Total Monthly Projected',
-    price: { formula: `SUM(E2:E${totalRowIndex - 1})` },
+    name: 'TOTAL MONTHLY SPEND',
+    category: '',
+    cycle: '',
+    renewal: '',
+    price: roundedTotal,
+    currency: String(displayCurrency),
+    status: `${activeSubs.length} Active`,
   });
 
   totalRow.height = 26;
@@ -206,9 +223,17 @@ export const exportToExcel = async (subscriptions = [], displayCurrency = 'USD')
   const totalLabelCell = totalRow.getCell(1);
   totalLabelCell.alignment = { vertical: 'middle', horizontal: 'left' };
 
-  const totalFormulaCell = totalRow.getCell(5);
-  totalFormulaCell.numFmt = currencyNumFmt;
-  totalFormulaCell.alignment = { vertical: 'middle', horizontal: 'right' };
+  // Place numerical sum directly in Price column
+  const totalPriceCell = totalRow.getCell(5);
+  totalPriceCell.value = roundedTotal;
+  totalPriceCell.numFmt = numberFormat;
+  totalPriceCell.alignment = { vertical: 'middle', horizontal: 'right' };
+
+  const totalCurrencyCell = totalRow.getCell(6);
+  totalCurrencyCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+  const totalStatusCell = totalRow.getCell(7);
+  totalStatusCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
   totalRow.eachCell({ includeEmpty: true }, (cell) => {
     cell.border = {
@@ -229,7 +254,7 @@ export const exportToExcel = async (subscriptions = [], displayCurrency = 'USD')
 };
 
 // ─────────────────────────────────────────────────────────────
-// 3. Visual PDF Summary (jsPDF + autoTable)
+// 3. Visual PDF Summary — Dark Mode Premium (jsPDF + autoTable)
 // ─────────────────────────────────────────────────────────────
 export const exportToPDF = (subscriptions = [], displayCurrency = 'USD') => {
   if (!subscriptions || subscriptions.length === 0) return false;
@@ -240,144 +265,220 @@ export const exportToPDF = (subscriptions = [], displayCurrency = 'USD') => {
     format: 'a4',
   });
 
+  const PAGE_W = doc.internal.pageSize.width;   // 210 mm
+  const PAGE_H = doc.internal.pageSize.height;  // 297 mm
+
+  // ── Phase 1: Paint full dark canvas before any text ──────────────────────
+  doc.setFillColor(15, 23, 42);  // Slate-900
+  doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
+
+  // ── Helpers: sanitise a raw price value to a plain ASCII string ──────────
+  // Avoids ₹ / locale-formatted numbers causing wide character spacing in jsPDF
+  const sanitisePrice = (rawVal, currCode = 'USD') => {
+    const n = parseFloat(String(rawVal).replace(/[^0-9.]/g, '')) || 0;
+    const symbolMap = {
+      '₹': 'INR',
+      '$': 'USD',
+      '€': 'EUR',
+      '£': 'GBP',
+    };
+    const cleanCode = symbolMap[currCode] || String(currCode).replace(/[^A-Za-z]/g, '') || 'USD';
+    return `${String(Number(n).toFixed(2))} ${cleanCode}`;
+  };
+
+  // ── Derived data ──────────────────────────────────────────────────────────
   const activeSubs = subscriptions.filter((s) => s && s.status === 'Active');
   const pausedSubs = subscriptions.filter((s) => s && s.status === 'Paused');
-  const trialSubs = subscriptions.filter((s) => s && s.status === 'Trial');
+  const trialSubs  = subscriptions.filter((s) => s && s.status === 'Trial');
 
-  // Calculate total monthly spend converted to display currency
-  const totalSpendInUSD = activeSubs.reduce((acc, sub) => {
-    const priceStr = String(sub?.price || '0');
-    const rawVal = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
-    const subCurr = sub?.currency || 'USD';
-    const valInUSD = convertCurrency(rawVal, subCurr, 'USD');
-    return acc + (sub?.cycle === 'Yearly' || sub?.billingCycle === 'Yearly' ? valInUSD / 12 : valInUSD);
+  // Total monthly spend — Phase 4: no toLocaleString, no currency symbols
+  const totalSpendUSD = activeSubs.reduce((acc, sub) => {
+    const raw = parseFloat(String(sub?.price ?? sub?.cost ?? '0').replace(/[^0-9.]/g, '')) || 0;
+    const valUSD = convertCurrency(raw, sub?.currency || 'USD', 'USD');
+    return acc + (sub?.cycle === 'Yearly' || sub?.billingCycle === 'Yearly'
+      ? valUSD / 12
+      : valUSD);
   }, 0);
+  const convertedTotal = convertCurrency(totalSpendUSD, 'USD', displayCurrency);
+  const totalPriceStr  = sanitisePrice(convertedTotal, displayCurrency);
 
-  const convertedTotal = convertCurrency(totalSpendInUSD, 'USD', displayCurrency);
+  // ── Top indigo accent bar ─────────────────────────────────────────────────
+  doc.setFillColor(79, 70, 229);   // Indigo-600
+  doc.rect(0, 0, PAGE_W, 4, 'F');
 
-  // Top Indigo Brand Accent Line
-  doc.setFillColor(79, 70, 229); // Indigo-600
-  doc.rect(0, 0, 210, 4, 'F');
-
-  // Header Title
+  // ── Header title — Slate-50 ───────────────────────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.setTextColor(31, 41, 55); // Dark Slate (RGB: 31, 41, 55 / #1F2937)
+  doc.setTextColor(248, 250, 252);  // Slate-50
   doc.text('STArt - Subscription Summary', 14, 20);
 
-  // Subtitle & Timestamp (Hard Y positioning)
+  // ── Subtitle & timestamp — Slate-400 ─────────────────────────────────────
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9.5);
-  doc.setTextColor(107, 114, 128); // Gray-500
+  doc.setTextColor(148, 163, 184);  // Slate-400
   doc.text('Subscription Portfolio & Recurring Expense Breakdown', 14, 28);
 
-  const dateStr = `Generated: ${new Date().toLocaleDateString()}`;
-  doc.text(dateStr, 196, 28, { align: 'right' });
+  const dateStr = `Generated: ${new Date().toISOString().split('T')[0]}`;
+  doc.text(dateStr, PAGE_W - 14, 28, { align: 'right' });
 
-  // Summary Metrics Section (Hard Y=34 to Y=56)
-  doc.setFillColor(249, 250, 251); // Gray-50
-  doc.setDrawColor(229, 231, 235); // Gray-200
-  doc.roundedRect(14, 34, 182, 22, 3, 3, 'FD');
+  // ── Phase 2: Three individual Slate-800 rounded metric cards ─────────────
+  //    Layout: three equal cards across the page (Y 34–56)
+  //    Card widths: ~56 mm each with 7 mm gaps
+  const cardY = 34;
+  const cardH = 22;
+  const cardW = 56;
+  const cardGap = 7;
+  const card1X = 14;
+  const card2X = card1X + cardW + cardGap;
+  const card3X = card2X + cardW + cardGap;
 
-  // KPI 1: Monthly Spend
+  // Card 1 — Total Monthly Spend
+  doc.setFillColor(30, 41, 59);  // Slate-800
+  doc.roundedRect(card1X, cardY, cardW, cardH, 4, 4, 'F');
+  // Left accent strip (Indigo)
+  doc.setFillColor(79, 70, 229);
+  doc.roundedRect(card1X, cardY, 2.5, cardH, 1, 1, 'F');
+
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(79, 70, 229); // Indigo-600
-  doc.text(formatPrice(convertedTotal, displayCurrency), 22, 44);
+  doc.setFontSize(12);
+  doc.setTextColor(248, 250, 252);  // Slate-50
+  doc.text(totalPriceStr, card1X + 7, cardY + 10);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(107, 114, 128);
-  doc.text(`Total Monthly Spend (${displayCurrency})`, 22, 50);
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);  // Slate-400
+  doc.text(`Monthly Spend (${displayCurrency})`, card1X + 7, cardY + 17);
 
-  // KPI 2: Active Subscriptions
+  // Card 2 — Active Subscriptions
+  doc.setFillColor(30, 41, 59);
+  doc.roundedRect(card2X, cardY, cardW, cardH, 4, 4, 'F');
+  // Left accent strip (Emerald)
+  doc.setFillColor(16, 185, 129);
+  doc.roundedRect(card2X, cardY, 2.5, cardH, 1, 1, 'F');
+
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(16, 185, 129); // Emerald-500
-  doc.text(String(activeSubs.length), 92, 44);
+  doc.setFontSize(16);
+  doc.setTextColor(16, 185, 129);   // Emerald-500
+  doc.text(String(activeSubs.length), card2X + 7, cardY + 11);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(107, 114, 128);
-  doc.text('Active Subscriptions', 92, 50);
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('Active Subscriptions', card2X + 7, cardY + 17);
 
-  // KPI 3: Inactive / Trials
+  // Card 3 — Paused / Trials
+  doc.setFillColor(30, 41, 59);
+  doc.roundedRect(card3X, cardY, cardW, cardH, 4, 4, 'F');
+  // Left accent strip (Amber)
+  doc.setFillColor(217, 119, 6);
+  doc.roundedRect(card3X, cardY, 2.5, cardH, 1, 1, 'F');
+
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(217, 119, 6); // Amber-600
-  doc.text(`${trialSubs.length} Trial / ${pausedSubs.length} Paused`, 148, 44);
+  doc.setFontSize(12);
+  doc.setTextColor(217, 119, 6);    // Amber-600
+  doc.text(
+    `${String(trialSubs.length)} Trial / ${String(pausedSubs.length)} Paused`,
+    card3X + 7,
+    cardY + 10
+  );
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(107, 114, 128);
-  doc.text('Pending & Inactive', 148, 50);
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('Pending & Inactive', card3X + 7, cardY + 17);
 
-  // Table Data Preparation
+  // ── Phase 4: Table data — sanitised prices, no locale strings ────────────
   const tableData = subscriptions.map((sub) => {
-    const priceStr = String(sub?.price || '0');
-    const numericPrice = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
-    const formattedPrice = formatPrice(numericPrice, sub?.currency || displayCurrency);
+    const rawPrice  = parseFloat(String(sub?.price ?? sub?.cost ?? '0').replace(/[^0-9.]/g, '')) || 0;
+    const cleanPrice = sanitisePrice(rawPrice, sub?.currency || displayCurrency);
 
     return [
       String(sub?.name || sub?.serviceName || 'Untitled'),
       String(sub?.category || 'General'),
       String(sub?.cycle || sub?.billingCycle || 'Monthly'),
       formatDateString(sub?.renewal || sub?.nextRenewalDate),
-      formattedPrice,
+      cleanPrice,
       String(sub?.status || 'Active'),
     ];
   });
 
-  // Render Table via autoTable with exact parameters and startY below summary metrics
+  // ── Phase 3: Premium dark autoTable ──────────────────────────────────────
   autoTable(doc, {
     startY: 66,
-    theme: 'striped',
     head: [['Subscription', 'Category', 'Billing Cycle', 'Next Renewal', 'Price', 'Status']],
     body: tableData,
-    headStyles: {
-      fillColor: [79, 70, 229], // Indigo-600
-      textColor: 255,
-      fontStyle: 'bold',
-      fontSize: 9,
-      halign: 'left',
-      cellPadding: 3.5,
-    },
-    alternateRowStyles: {
-      fillColor: [243, 244, 246], // Gray-100
-    },
-    bodyStyles: {
-      fontSize: 8.5,
-      textColor: [31, 41, 55],
+
+    // Base styles — dark canvas
+    styles: {
+      fillColor:   [15, 23, 42],    // Slate-900
+      textColor:   [203, 213, 225], // Slate-300
+      lineColor:   [51, 65, 85],    // Slate-700
+      lineWidth:   0.1,
+      font:        'helvetica',
+      fontSize:    8.5,
       cellPadding: 3,
     },
+
+    // Indigo header row
+    headStyles: {
+      fillColor:  [79, 70, 229],  // Indigo-600
+      textColor:  255,
+      fontStyle:  'bold',
+      fontSize:   9,
+      halign:     'left',
+      cellPadding: 3.5,
+    },
+
+    // Alternate rows: Slate-800
+    alternateRowStyles: {
+      fillColor: [30, 41, 59],    // Slate-800
+    },
+
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 42 },
       1: { cellWidth: 32 },
       2: { halign: 'center', cellWidth: 26 },
       3: { halign: 'center', cellWidth: 28 },
-      4: { halign: 'right', fontStyle: 'bold', cellWidth: 28 },
-      5: { halign: 'center', cellWidth: 26 },
+      4: { halign: 'right',  fontStyle: 'bold', cellWidth: 30 },
+      5: { halign: 'center', cellWidth: 24 },
     },
+
+    // Status column colour coding
     didParseCell: (data) => {
       if (data.section === 'body' && data.column.index === 5) {
         const val = String(data.cell.raw);
         if (val === 'Active') {
-          data.cell.styles.textColor = [16, 185, 129]; // Emerald
+          data.cell.styles.textColor = [16, 185, 129];  // Emerald-500
           data.cell.styles.fontStyle = 'bold';
         } else if (val === 'Paused') {
-          data.cell.styles.textColor = [107, 114, 128]; // Gray
+          data.cell.styles.textColor = [148, 163, 184]; // Slate-400
         } else if (val === 'Trial') {
-          data.cell.styles.textColor = [217, 119, 6]; // Amber
+          data.cell.styles.textColor = [217, 119, 6];   // Amber-600
+          data.cell.styles.fontStyle = 'bold';
+        } else if (val === 'Flagged') {
+          data.cell.styles.textColor = [239, 68, 68];   // Rose-500
           data.cell.styles.fontStyle = 'bold';
         }
       }
     },
+
+    // Paint dark canvas on continuation pages before table content is drawn
+    willDrawPage: (data) => {
+      if (data.pageNumber > 1) {
+        doc.setFillColor(15, 23, 42); // Slate-900
+        doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
+        doc.setFillColor(79, 70, 229); // Indigo-600 top bar
+        doc.rect(0, 0, PAGE_W, 4, 'F');
+      }
+    },
+
+    // Footer drawn after page content is rendered
     didDrawPage: (data) => {
       const pageCount = doc.internal.getNumberOfPages();
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      doc.setTextColor(156, 163, 175);
+      doc.setTextColor(71, 85, 105);  // Slate-600
       doc.text(
-        `Generated by STArt • Page ${data.pageNumber} of ${pageCount}`,
-        105,
-        290,
+        `Generated by STArt  •  Page ${data.pageNumber} of ${pageCount}`,
+        PAGE_W / 2,
+        PAGE_H - 7,
         { align: 'center' }
       );
     },
@@ -387,3 +488,4 @@ export const exportToPDF = (subscriptions = [], displayCurrency = 'USD') => {
   doc.save(`subscriptions_visual_summary_${timestamp}.pdf`);
   return true;
 };
+

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import CurrencySelector from '../components/CurrencySelector';
 import CustomSelect from '../components/CustomSelect';
 import { useTheme } from '../context/ThemeContext';
+import { apiFetch } from '../utils/api';
 
 const TABS = ['Profile', 'Preferences', 'Notifications'];
 
@@ -27,6 +28,49 @@ export default function SettingsView({ user, setUser, onLogout, displayCurrency,
   const [editCountry, setEditCountry] = useState(user?.country || '');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState(null);
+
+  // Change-password state
+  const [pwCurrent, setPwCurrent]   = useState('');
+  const [pwNew, setPwNew]           = useState('');
+  const [pwConfirm, setPwConfirm]   = useState('');
+  const [pwSaving, setPwSaving]     = useState(false);
+  const [pwMsg, setPwMsg]           = useState(null); // { type: 'success'|'error', text }
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    setPwMsg(null);
+
+    // Client-side validations
+    if (!pwCurrent || !pwNew || !pwConfirm) {
+      return setPwMsg({ type: 'error', text: 'All three password fields are required.' });
+    }
+    if (pwNew !== pwConfirm) {
+      return setPwMsg({ type: 'error', text: 'New password and confirmation do not match.' });
+    }
+    if (pwNew.length < 8) {
+      return setPwMsg({ type: 'error', text: 'New password must be at least 8 characters.' });
+    }
+
+    setPwSaving(true);
+    try {
+      const res = await apiFetch('/auth/update-password', {
+        method: 'PUT',
+        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
+      });
+
+      if (res.ok) {
+        setPwMsg({ type: 'success', text: res.data.message || 'Password updated successfully.' });
+        setPwCurrent(''); setPwNew(''); setPwConfirm('');
+      } else {
+        setPwMsg({ type: 'error', text: res.data.message || 'Failed to update password.' });
+      }
+    } catch {
+      setPwMsg({ type: 'error', text: 'Server offline. Please try again later.' });
+    } finally {
+      setPwSaving(false);
+      setTimeout(() => setPwMsg(null), 5000);
+    }
+  };
 
   // Notification toggles (persisted in localStorage)
   const [notifRenewal, setNotifRenewal] = useState(() =>
@@ -124,7 +168,7 @@ export default function SettingsView({ user, setUser, onLogout, displayCurrency,
       {activeTab === 'Profile' && (
         <div className="space-y-6">
           {/* Avatar + Info Card */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl relative z-20 overflow-visible">
             <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-5 uppercase tracking-wider">
               Account Information
             </h3>
@@ -161,7 +205,7 @@ export default function SettingsView({ user, setUser, onLogout, displayCurrency,
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:border-royal-purple-500 dark:focus:border-royal-purple-400 transition-colors"
                   />
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                     Country
                   </label>
@@ -202,12 +246,115 @@ export default function SettingsView({ user, setUser, onLogout, displayCurrency,
               </div>
             </form>
           </div>
+
+          {/* ── Security / Change Password Card ─────────────────────────────── */}
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl relative z-10">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-8 h-8 rounded-xl bg-royal-purple-100 dark:bg-royal-purple-500/10 border border-royal-purple-200 dark:border-royal-purple-500/30 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-royal-purple-600 dark:text-royal-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Security</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Change your account password</p>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handlePasswordUpdate} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                {/* Current Password */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                    Current Password
+                  </label>
+                  <input
+                    id="settings-current-password"
+                    type="password"
+                    value={pwCurrent}
+                    onChange={(e) => setPwCurrent(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:border-royal-purple-500 dark:focus:border-royal-purple-400 transition-colors"
+                  />
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                    New Password
+                  </label>
+                  <input
+                    id="settings-new-password"
+                    type="password"
+                    value={pwNew}
+                    onChange={(e) => setPwNew(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:border-royal-purple-500 dark:focus:border-royal-purple-400 transition-colors"
+                  />
+                </div>
+
+                {/* Confirm New Password */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                    Confirm Password
+                  </label>
+                  <input
+                    id="settings-confirm-password"
+                    type="password"
+                    value={pwConfirm}
+                    onChange={(e) => setPwConfirm(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className={`w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none transition-colors ${
+                      pwConfirm && pwNew !== pwConfirm
+                        ? 'border-rose-400 dark:border-rose-500 focus:border-rose-500'
+                        : 'border-slate-200 dark:border-slate-800 focus:border-royal-purple-500 dark:focus:border-royal-purple-400'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Live mismatch hint */}
+              {pwConfirm && pwNew !== pwConfirm && (
+                <p className="text-xs text-rose-500 dark:text-rose-400 font-medium -mt-1">
+                  Passwords don't match yet.
+                </p>
+              )}
+
+              {/* Inline feedback banner */}
+              {pwMsg && (
+                <div className={`px-4 py-2.5 rounded-xl text-xs font-bold border ${
+                  pwMsg.type === 'success'
+                    ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
+                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
+                }`}>
+                  {pwMsg.text}
+                </div>
+              )}
+
+              {/* CTA */}
+              <button
+                id="settings-update-password-btn"
+                type="submit"
+                disabled={pwSaving || (pwConfirm.length > 0 && pwNew !== pwConfirm)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-royal-purple-700 to-royal-purple-500 hover:from-royal-purple-600 hover:to-royal-purple-400 shadow-md shadow-royal-purple-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {pwSaving ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
+
       {/* ── TAB: Preferences ────────────────────────────────────────────────── */}
       {activeTab === 'Preferences' && (
-        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl space-y-6">
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl space-y-6 relative z-10 overflow-visible">
           <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Application Preferences
           </h3>

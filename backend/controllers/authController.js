@@ -3,10 +3,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // ─────────────────────────────────────────────────────────────
-// Constants
+// Constants — read from environment, never hardcoded in source
 // ─────────────────────────────────────────────────────────────
-const MASTER_ADMIN_EMAIL = 'shasankshah.25.mca@iite.indusuni.ac.in';
-const MASTER_ADMIN_PASSWORD = 'Sh@$ank0110';
+const MASTER_ADMIN_EMAIL    = (process.env.MASTER_ADMIN_EMAIL    || '').toLowerCase();
+const MASTER_ADMIN_PASSWORD =  process.env.MASTER_ADMIN_PASSWORD || '';
+
 
 // Password Regex: min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;
@@ -255,5 +256,137 @@ exports.updateMe = async (req, res) => {
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ message: 'Server error updating profile' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// @desc    Request a password reset link (generates a 30-min signed token)
+// @route   POST /api/auth/forgot-password
+// ─────────────────────────────────────────────────────────────
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Please provide an email address' });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    // Always respond 200 to prevent user enumeration attacks
+    if (!user) {
+      return res.status(200).json({ message: 'If that email exists, a reset link has been sent.' });
+    }
+
+    // Generate a short-lived (30 min) signed reset token
+    const resetToken = jwt.sign(
+      { id: user._id, purpose: 'password_reset' },
+      process.env.JWT_SECRET || 'start_secret_key_2026',
+      { expiresIn: '30m' }
+    );
+
+    // In production: send `resetToken` via email (nodemailer / SendGrid)
+    // For now, return it directly so the frontend can use it in development
+    console.log(`[AUTH] Password reset token for ${user.email}: ${resetToken}`);
+
+    res.status(200).json({
+      message: 'If that email exists, a reset link has been sent.',
+      // Remove `resetToken` from response body in production (send via email only)
+      resetToken,
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error during password reset request' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// @desc    Consume a reset token and update the user's password
+// @route   POST /api/auth/reset-password
+// ─────────────────────────────────────────────────────────────
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    // Verify and decode — jwt.verify throws if expired or tampered
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'start_secret_key_2026');
+    } catch (err) {
+      const msg = err.name === 'TokenExpiredError'
+        ? 'Password reset link has expired (30 min limit). Please request a new one.'
+        : 'Invalid or tampered reset token.';
+      return res.status(401).json({ message: msg });
+    }
+
+    if (decoded.purpose !== 'password_reset') {
+      return res.status(401).json({ message: 'Invalid reset token purpose.' });
+    }
+
+    if (!PASSWORD_REGEX.test(newPassword)) {
+      return res.status(400).json({
+        message: 'Password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.',
+      });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.passwordResetRequested = false;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully. Please log in.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Server error during password reset' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// @desc    Change password for authenticated user
+// @route   PUT /api/auth/update-password
+// @access  Private (requires valid session cookie)
+// ─────────────────────────────────────────────────────────────
+exports.updatePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required.' });
+    }
+
+    // Fetch user WITH password field (normally excluded by select('-password'))
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    // Verify the current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect current password.' });
+    }
+
+    // Reject if new password is the same as the current one
+    const isSame = await bcrypt.compare(newPassword, user.password);
+    if (isSame) {
+      return res.status(400).json({ message: 'New password must be different from your current password.' });
+    }
+
+    // Enforce password strength policy
+    if (!PASSWORD_REGEX.test(newPassword)) {
+      return res.status(400).json({
+        message: 'Password must be at least 8 characters and include 1 uppercase, 1 lowercase, 1 number, and 1 special character.',
+      });
+    }
+
+    // Hash and persist the new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully.' });
+  } catch (error) {
+    console.error('Update password error:', error);
+    res.status(500).json({ message: 'Server error while updating password.' });
   }
 };

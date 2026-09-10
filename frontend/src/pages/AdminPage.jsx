@@ -51,9 +51,18 @@ function ActionMenu({ u, onRoleChange, onSuspend, onForceReset, onViewData, onDe
   const ref = useRef(null);
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const keyHandler = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('keydown', keyHandler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('keydown', keyHandler);
+    };
   }, []);
 
   const isMaster = u.email.toLowerCase() === 'shasankshah.25.mca@iite.indusuni.ac.in';
@@ -84,7 +93,7 @@ function ActionMenu({ u, onRoleChange, onSuspend, onForceReset, onViewData, onDe
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl py-1 z-40 animate-in fade-in slide-in-from-top-2 duration-150">
           <button
             onClick={() => { onSuspend(u._id, u.isSuspended); setOpen(false); }}
             className={`${btnClass} ${u.isSuspended
@@ -428,8 +437,8 @@ export default function AdminPage({ user }) {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 dark:border-white/8 bg-white dark:bg-white/5 backdrop-blur-xl overflow-hidden shadow-xl dark:shadow-none">
-          <div className="overflow-x-auto">
+        <div className="rounded-3xl border border-slate-200 dark:border-white/8 bg-white dark:bg-white/5 backdrop-blur-xl overflow-visible relative z-10 shadow-xl dark:shadow-none">
+          <div className="overflow-x-auto rounded-3xl">
             <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
               <thead className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/8">
                 <tr>
