@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import CustomSelect from './CustomSelect';
 import { useAuth } from '../context/AuthContext';
-
-const RATING_OPTIONS = [
-  { value: 5, label: '⭐⭐⭐⭐⭐ Excellent (5/5)' },
-  { value: 4, label: '⭐⭐⭐⭐ Good (4/5)' },
-  { value: 3, label: '⭐⭐⭐ Average (3/5)' },
-  { value: 2, label: '⭐⭐ Needs Improvement (2/5)' },
-];
 
 export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAddFeedback, user: propUser }) {
   const auth = useAuth();
   const currentUser = propUser || auth?.user;
 
-  // Auto-fill logged in user's name or email, while keeping it fully editable
+  // Form State
   const [authorName, setAuthorName] = useState(() => currentUser?.name || currentUser?.email || '');
-  const [role, setRole] = useState(() => currentUser?.role || '');
+  const [feedbackType, setFeedbackType] = useState('General');
   const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -26,9 +20,6 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
   useEffect(() => {
     if (currentUser?.name || currentUser?.email) {
       setAuthorName(prev => (prev ? prev : (currentUser.name || currentUser.email)));
-      if (currentUser.role) {
-        setRole(prev => (prev ? prev : currentUser.role));
-      }
     }
   }, [currentUser]);
 
@@ -49,23 +40,29 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!message.trim() || !authorName.trim()) return;
+    const resolvedName = isAnonymous ? (authorName.trim() || 'Anonymous') : authorName.trim();
+    if (!message.trim() || !resolvedName) return;
 
     setSubmitting(true);
     setErrorMsg('');
 
     try {
+      const payload = {
+        name: resolvedName,
+        role: feedbackType,
+        rating: Number(rating),
+        message: message.trim(),
+        feedback: message.trim(),
+        tag: feedbackType,
+        feedbackType,
+        isAnonymous,
+      };
+
       const res = await fetch('http://localhost:5000/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          name: authorName.trim(),
-          role: role.trim() || 'App User',
-          rating: Number(rating),
-          message: message.trim(),
-          tag: 'New Feedback',
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -76,12 +73,14 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
 
       const created = data.feedback || {
         _id: Date.now(),
-        name: authorName,
-        role: role || 'App User',
+        name: resolvedName,
+        role: feedbackType,
         rating: Number(rating),
         message,
+        feedbackType,
+        isAnonymous,
         createdAt: new Date().toISOString(),
-        tag: 'New Feedback',
+        tag: feedbackType,
       };
 
       if (onAddFeedback) {
@@ -93,8 +92,11 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
       }
 
       setAuthorName(currentUser?.name || currentUser?.email || '');
-      setRole(currentUser?.role || '');
       setMessage('');
+      setRating(5);
+      setHoverRating(0);
+      setFeedbackType('General');
+      setIsAnonymous(false);
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 5000);
     } catch (err) {
@@ -105,7 +107,14 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
     }
   };
 
-  const listToDisplay = feedbackList || [];
+  // Only display genuine, live feedback entries; discard any mock/sample/demo entries
+  const listToDisplay = (feedbackList || []).filter(item => {
+    if (!item) return false;
+    if (item.isSample || item.isDemo || item.mock) return false;
+    const name = (item.name || '').toLowerCase().trim();
+    if (name === 'alex morgan' || name === 'alex morgen' || name === 'sarah jenkins') return false;
+    return true;
+  });
 
   return (
     /* Backdrop */
@@ -162,45 +171,129 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Phase 3: Anonymous Redaction Blur Toggle + Name Input */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  Your Name
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Your Name
+                  </label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      Hide identity
+                    </span>
+                    <div className="relative inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={isAnonymous}
+                        onChange={(e) => setIsAnonymous(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className={`w-9 h-5 rounded-full transition-colors duration-200 peer-focus:outline-none ${
+                        isAnonymous
+                          ? 'bg-indigo-500'
+                          : 'bg-slate-200 dark:bg-slate-700'
+                      } after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all ${
+                        isAnonymous ? 'after:translate-x-4' : ''
+                      }`} />
+                    </div>
+                  </label>
+                </div>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Alex Morgan"
+                  required={!isAnonymous}
+                  disabled={isAnonymous}
+                  placeholder={isAnonymous ? "Anonymous User" : "Your name"}
                   value={authorName}
                   onChange={(e) => setAuthorName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 dark:focus:ring-[#F7E7CE]/40 transition-all"
+                  className={`w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 dark:focus:ring-[#F7E7CE]/40 transition-all ${
+                    isAnonymous ? 'blur-sm select-none opacity-50 pointer-events-none' : ''
+                  }`}
                 />
               </div>
 
+              {/* Phase 1: Feedback Type Pill Selector */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  Role / Branch (Optional)
+                  Feedback Type
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. IT Student / Beta Tester"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 dark:focus:ring-[#F7E7CE]/40 transition-all"
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { id: 'Bug Report', label: '🐛 Bug Report' },
+                    { id: 'Feature Request', label: '✨ Feature Request' },
+                    { id: 'General', label: '💬 General' },
+                  ].map((pill) => {
+                    const isActive = feedbackType === pill.id;
+                    return (
+                      <button
+                        key={pill.id}
+                        type="button"
+                        onClick={() => setFeedbackType(pill.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all duration-200 ${
+                          isActive
+                            ? 'bg-indigo-500 text-white shadow-md'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {pill.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
+              {/* Phase 2: Interactive SVG Star Rating */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  Rating
-                </label>
-                <CustomSelect
-                  value={rating}
-                  onChange={(val) => setRating(Number(val))}
-                  options={RATING_OPTIONS}
-                  size="sm"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Rating
+                  </label>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    {(hoverRating || rating)} / 5
+                  </span>
+                </div>
+                <div
+                  className="flex items-center gap-1.5"
+                  onMouseLeave={() => setHoverRating(0)}
+                >
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const currentRating = hoverRating || rating;
+                    const isFilled = star <= currentRating;
+                    const isSingleStar = currentRating === 1;
+
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        className="p-0.5 rounded-lg focus:outline-none cursor-pointer transition-transform hover:scale-110 active:scale-95"
+                        aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                      >
+                        <svg
+                          className={`w-8 h-8 cursor-pointer transition-colors ${
+                            isFilled
+                              ? isSingleStar
+                                ? 'text-rose-500 fill-rose-500'
+                                : 'text-amber-400 fill-amber-400'
+                              : 'text-slate-300 dark:text-slate-700 fill-slate-200/40 dark:fill-slate-800/40'
+                          }`}
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="1"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                          />
+                        </svg>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
+              {/* Dynamic Textarea Placeholder based on rating */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                   Feedback / Feature Request
@@ -208,7 +301,11 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
                 <textarea
                   required
                   rows="4"
-                  placeholder="Share your thoughts on the UI, functionality, or improvements..."
+                  placeholder={
+                    rating === 1
+                      ? "We're sorry you had a bad experience. What specifically went wrong?"
+                      : "Share your thoughts on the UI, functionality, or improvements..."
+                  }
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 dark:focus:ring-[#F7E7CE]/40 transition-all resize-none"
@@ -252,11 +349,15 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-xl bg-royal-purple-100 dark:bg-royal-purple-500/20 border border-royal-purple-200 dark:border-royal-purple-500/30 text-royal-purple-700 dark:text-royal-purple-300 flex items-center justify-center font-bold text-xs">
-                          {item.name ? item.name.charAt(0) : '?'}
+                          {item.isAnonymous ? '🕶️' : (item.name ? item.name.charAt(0) : '?')}
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-slate-900 dark:text-white">{item.name}</h4>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400">{item.role}</p>
+                          <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+                            {item.isAnonymous ? 'Anonymous User' : item.name}
+                          </h4>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                            {item.feedbackType || item.role}
+                          </p>
                         </div>
                       </div>
                       <div className="flex flex-col items-end shrink-0">
@@ -286,8 +387,11 @@ export default function FeedbackModal({ isOpen, onClose, feedbackList = [], onAd
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 max-w-xs">
-                  No community feedback yet. Be the first to share your thoughts!
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  No feedback yet
+                </h4>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-xs">
+                  Currently no feedback. Be the first to share your thoughts!
                 </p>
               </div>
             )}

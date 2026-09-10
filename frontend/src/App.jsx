@@ -73,16 +73,25 @@ function App() {
 
   // Check backend session and load feedback on startup
   useEffect(() => {
-    // 1. Fetch community feedback
+    // 1. Fetch live community feedback (only live/real feedback loaded)
     fetch('http://localhost:5000/api/feedback')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.feedbacks) {
-          setFeedbackList(data.feedbacks.map(f => ({
-            ...f,
-            id: f._id || f.id,
-            date: f.createdAt ? new Date(f.createdAt).toLocaleDateString() : 'Recent',
-          })));
+        if (data.success && Array.isArray(data.feedbacks)) {
+          // Filter out any sample/demo/mock entries or dummy test names (e.g. Alex Morgan, Sarah Jenkins)
+          const liveList = data.feedbacks
+            .filter(f => {
+              if (!f || f.isSample || f.isDemo || f.mock) return false;
+              const name = (f.name || '').toLowerCase().trim();
+              if (name === 'alex morgan' || name === 'alex morgen' || name === 'sarah jenkins') return false;
+              return true;
+            })
+            .map(f => ({
+              ...f,
+              id: f._id || f.id,
+              date: f.createdAt ? new Date(f.createdAt).toLocaleDateString() : 'Recent',
+            }));
+          setFeedbackList(liveList);
         }
       })
       .catch(err => console.warn('Could not fetch community feedback:', err));

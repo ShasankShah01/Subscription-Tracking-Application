@@ -1,6 +1,7 @@
 import React from 'react';
 
-const reviews = [
+// DEV ONLY: sample feedback for local testing (disabled in production builds)
+const DEV_SAMPLE_REVIEWS = import.meta.env.DEV ? [
   {
     name: 'Aarav Sharma',
     role: 'Computer Science Major',
@@ -28,9 +29,17 @@ const reviews = [
     quote: 'Awesome project! Clean architecture, fast React frontend, and the automated renewal alerts give me peace of mind before my cloud bills hit.',
     color: 'from-emerald-500 to-teal-500',
   },
-];
+] : [];
 
-export default function TestimonialsSection() {
+export default function TestimonialsSection({ feedbackList = [] }) {
+  // Only consume real live feedback in production; dev fallback gated strictly to DEV mode
+  const reviews = feedbackList.length > 0 
+    ? feedbackList 
+    : (import.meta.env.DEV ? DEV_SAMPLE_REVIEWS : []);
+
+  if (!reviews || reviews.length === 0) {
+    return null;
+  }
   return (
     <section id="testimonials" className="py-24 border-b border-white/5 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
